@@ -1,0 +1,55 @@
+﻿@model InventoryApp.Models.Component
+@{
+    ViewData["Title"] = "Smazat součástku";
+}
+
+<h3 class="mb-3 text-danger">Opravdu smazat tuto součástku?</h3>
+
+<div class="card border-danger shadow-sm mb-3">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Název</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Výrobce</dt>
+            <dd class="col-sm-9">@Model.Manufacturer</dd>
+
+            <dt class="col-sm-3">MPN</dt>
+            <dd class="col-sm-9">@Model.ManufacturerPartNumber</dd>
+
+            <dt class="col-sm-3">Umístění</dt>
+            <dd class="col-sm-9">
+                @if (Model.Location != null)
+                {
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-primary">@Model.Location.Rack</span>
+                        @if (!string.IsNullOrEmpty(Model.Location.Drawer))
+                        {
+                            <span class="badge bg-info text-dark">Šuplík @Model.Location.Drawer</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Location.Box))
+                        {
+                            <span class="badge bg-success">Krab. @Model.Location.Box</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="text-muted fst-italic">–</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="DeleteConfirmed" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Zpět
+        </a>
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Potvrdit smazání
+        </button>
+    </div>
+</form>

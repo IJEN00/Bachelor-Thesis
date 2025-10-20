@@ -1,0 +1,118 @@
+﻿@model List<InventoryApp.Models.Component>
+
+@{
+    ViewData["Title"] = "Součástky";
+}
+
+<h3 class="mb-3">Součástky</h3>
+
+<form id="filterForm" method="get" asp-action="Index" class="mb-3">
+    <div class="row g-2 align-items-center mb-2">
+        <div class="col-md-4">
+            <input type="text" name="search" value="@Context.Request.Query["search"]"
+                   class="form-control" placeholder="Hledat součástku podle názvu..." />
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-outline-primary w-100">Hledat</button>
+        </div>
+        <div class="col-md-1">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Zrušit</a>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Create" class="btn btn-success">+ Přidat součástku</a>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-2">
+            <select id="RackFilter" class="form-select">
+                <option value="">Regál (vše)</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select id="DrawerFilter" class="form-select">
+                <option value="">Šuplík (vše)</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select id="BoxFilter" class="form-select">
+                <option value="">Krabička (vše)</option>
+            </select>
+        </div>
+    </div>
+</form>
+
+<div id="componentList">
+    @await Html.PartialAsync("_ComponentListPartial", Model)
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const $rack = $('#RackFilter');
+            const $drawer = $('#DrawerFilter');
+            const $box = $('#BoxFilter');
+            const $search = $('input[name="search"]');
+            const $form = $('#filterForm');
+
+            $.getJSON('@Url.Action("GetRacks", "Locations")', function (racks) {
+                $.each(racks, function (i, val) {
+                    $rack.append('<option value="' + val.rack + '">' + val.rack + '</option>');
+                });
+            });
+
+            $rack.on('change', function () {
+                const rack = $(this).val();
+                $drawer.empty().append('<option value="">Šuplík (vše)</option>');
+                $box.empty().append('<option value="">Krabička (vše)</option>');
+                if (rack) {
+                    $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rack }, function (drawers) {
+                        $.each(drawers, function (i, val) {
+                            $drawer.append('<option value="' + val.drawer + '">' + val.drawer + '</option>');
+                        });
+                    });
+                }
+                filterComponents();
+            });
+
+            $drawer.on('change', function () {
+                const rack = $rack.val();
+                const drawer = $(this).val();
+                $box.empty().append('<option value="">Krabička (vše)</option>');
+                if (rack && drawer) {
+                    $.getJSON('@Url.Action("GetBoxes", "Locations")', { rack: rack, drawer: drawer }, function (boxes) {
+                        $.each(boxes, function (i, val) {
+                            $box.append('<option value="' + val.box + '">' + val.box + '</option>');
+                        });
+                    });
+                }
+                filterComponents();
+            });
+
+            $box.on('change', function () {
+                filterComponents();
+            });
+
+            $form.on('submit', function (e) {
+                e.preventDefault(); 
+                filterComponents();
+            });
+
+            function filterComponents() {
+                $.get('@Url.Action("Filter", "Components")', {
+                    rack: $rack.val(),
+                    drawer: $drawer.val(),
+                    box: $box.val(),
+                    search: $search.val()
+                }, function (data) {
+                    $('#componentList').html(data);
+                });
+            }
+        });
+
+        $(document).on('dblclick', 'table tbody tr[data-id]', function () {
+            const id = $(this).data('id');
+            window.location.href = '@Url.Action("Details", "Components")/' + id;
+        });
+    </script>
+}

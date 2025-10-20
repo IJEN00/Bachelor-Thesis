@@ -1,0 +1,111 @@
+﻿@model InventoryApp.Models.Component
+@{
+    ViewData["Title"] = "Nová součástka";
+}
+
+<h3>Nová součástka</h3>
+<form asp-action="Create" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Název</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Výrobce</label>
+        <input asp-for="Manufacturer" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">MPN</label>
+        <input asp-for="ManufacturerPartNumber" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Množství</label>
+        <input asp-for="Quantity" type="number" class="form-control" />
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Regál</label>
+        <select id="RackDropdown" class="form-select">
+            <option value="">-- Vyber regál --</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Šuplík</label>
+        <select id="DrawerDropdown" class="form-select" disabled>
+            <option value="">-- Vyber šuplík --</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Krabička</label>
+        <select id="BoxDropdown" name="LocationId" class="form-select" disabled>
+            <option value="">-- Vyber krabičku --</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Přílohy</label>
+        <input type="file" name="files" multiple class="form-control" />
+        <small class="text-muted">Můžeš vybrat více souborů najednou.</small>
+    </div>
+    <button class="btn btn-primary">Uložit</button>
+    <a asp-action="Index" class="btn btn-secondary">Zpět</a>
+</form>
+
+@section Scripts {
+    <script>
+
+        // 1. Načtení regálů při načtení stránky
+        $(document).ready(function () {
+            $.getJSON('@Url.Action("GetRacks", "Locations")', function (data) {
+                var $rack = $('#RackDropdown');
+                $rack.empty().append('<option value="">-- Vyber regál --</option>');
+                $.each(data, function (i, val) {
+                    $rack.append('<option value="' + val.rack + '">' + val.rack + '</option>');
+                });
+            });
+        });
+
+        // 2. Při změně regálu načti šuplíky
+        $('#RackDropdown').on('change', function () {
+            var rack = $(this).val();
+            var $drawer = $('#DrawerDropdown');
+            var $box = $('#BoxDropdown');
+            $drawer.prop('disabled', true);
+            $box.prop('disabled', true).empty().append('<option value="">-- Vyber krabičku --</option>');
+
+            if (rack) {
+                $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rack }, function (data) {
+                    $drawer.empty().append('<option value="">-- Vyber šuplík --</option>');
+                    $.each(data, function (i, val) {
+                        $drawer.append('<option value="' + val.drawer + '">' + val.drawer + '</option>');
+                    });
+                    $drawer.prop('disabled', false);
+                });
+            } else {
+                $drawer.empty().append('<option value="">-- Vyber šuplík --</option>');
+            }
+        });
+
+        // 3. Při změně šuplíku načti krabičky
+        $('#DrawerDropdown').on('change', function () {
+            var rack = $('#RackDropdown').val();
+            var drawer = $(this).val();
+            var $box = $('#BoxDropdown');
+            $box.prop('disabled', true);
+
+            if (rack && drawer) {
+                $.getJSON('@Url.Action("GetBoxes", "Locations")', { rack: rack, drawer: drawer }, function (data) {
+                    $box.empty().append('<option value="">-- Vyber krabičku --</option>');
+                    $.each(data, function (i, val) {
+                        $box.append('<option value="' + val.id + '">' + val.box + '</option>');
+                    });
+                    $box.prop('disabled', false);
+                });
+            } else {
+                $box.empty().append('<option value="">-- Vyber krabičku --</option>');
+            }
+        });
+    </script>
+}

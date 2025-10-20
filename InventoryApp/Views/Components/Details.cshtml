@@ -1,0 +1,85 @@
+﻿@model InventoryApp.Models.Component
+@{
+    ViewData["Title"] = "Detail součástky";
+}
+
+<div class="container">
+    <h3 class="mb-4">Detail součástky</h3>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">@Model.Name</h4>
+            <p class="card-text text-muted">
+                Výrobce: <strong>@Model.Manufacturer</strong><br />
+                MPN: <strong>@Model.ManufacturerPartNumber</strong><br />
+                Množství:
+                @if (@Model.Quantity <= 5)
+                {
+                    <strong class="text-danger">@Model.Quantity</strong><br />            
+                }
+                else
+                {
+                    <strong>@Model.Quantity</strong><br />
+                }
+                
+            </p>
+
+            @if (Model.Location != null)
+            {
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="card-text text-muted">Umístění:  </span><span class="badge bg-primary">@Model.Location.Rack</span>
+                    @if (!string.IsNullOrEmpty(Model.Location.Drawer))
+                    {
+                        <span class="badge bg-info text-dark">Šuplík @Model.Location.Drawer</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Location.Box))
+                    {
+                        <span class="badge bg-success">Krab. @Model.Location.Box</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Umístění není přiřazeno!</p>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-paperclip"></i> Přílohy</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Documents != null && Model.Documents.Any())
+            {
+                <ul class="list-group">
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="~/@doc.FilePath" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-file-earmark-text"></i> @doc.FileName
+                            </a>
+                            <span class="text-muted small">
+                                Nahráno: @doc.UploadedAt.ToLocalTime().ToString("g")
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-muted">Žádné přílohy nejsou k dispozici.</p>
+            }
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Zpět
+        </a>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Upravit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Smazat</a>
+        </div>
+    </div>
+</div>

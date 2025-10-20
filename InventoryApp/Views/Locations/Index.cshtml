@@ -1,0 +1,70 @@
+﻿@model IEnumerable<InventoryApp.Models.Location>
+
+@{
+    ViewData["Title"] = "Sklad";
+}
+
+<h3 class="mb-3">Sklad</h3>
+
+<form id="filterForm" method="get" asp-action="Index" class="mb-3">
+    <div class="row g-2 align-items-center mb-2">
+        <div class="col-md-2">
+            <select id="RackFilter" class="form-select">
+                <option value="">Regál (vše)</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select id="DrawerFilter" class="form-select">
+                <option value="">Šuplík (vše)</option>
+            </select>
+        </div>
+        <div class="col text-end">
+            <a asp-action="Create" class="btn btn-success w-100">+ Přidat umístění</a>
+        </div>
+    </div>
+</form>
+
+<div id="locationList">
+    @await Html.PartialAsync("_LocationListPartial", Model)
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const $rack = $('#RackFilter');
+            const $drawer = $('#DrawerFilter');
+
+            $.getJSON('@Url.Action("GetRacks", "Locations")', function (racks) {
+                $.each(racks, function (i, val) {
+                    $rack.append('<option value="' + val.rack + '">' + val.rack + '</option>');
+                });
+            });
+
+            $rack.on('change', function () {
+                const rack = $(this).val();
+                $drawer.empty().append('<option value="">Šuplík (vše)</option>');
+                if (rack) {
+                    $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rack }, function (drawers) {
+                        $.each(drawers, function (i, val) {
+                            $drawer.append('<option value="' + val.drawer + '">' + val.drawer + '</option>');
+                        });
+                    });
+                }
+                filterLocations();
+            });
+
+            $drawer.on('change', function () {
+                filterLocations();
+            });
+
+            function filterLocations() {
+                $.get('@Url.Action("Filter", "Locations")', {
+                    rack: $rack.val(),
+                    drawer: $drawer.val()
+                }, function (data) {
+                    $('#locationList').html(data);
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,171 @@
+﻿@model InventoryApp.Models.Component
+@{
+    ViewData["Title"] = "Upravit součástku";
+}
+
+<h3 class="mb-3">Upravit součástku</h3>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Název</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Manufacturer" class="form-label">Výrobce</label>
+                <input asp-for="Manufacturer" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ManufacturerPartNumber" class="form-label">MPN</label>
+                <input asp-for="ManufacturerPartNumber" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Quantity" class="form-label">Množství</label>
+                <input asp-for="Quantity" type="number" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Regál</label>
+                <select id="RackDropdown" class="form-select">
+                    <option value="">-- Vyber regál --</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Šuplík</label>
+                <select id="DrawerDropdown" class="form-select" disabled>
+                    <option value="">-- Vyber šuplík --</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Krabička</label>
+                <select id="BoxDropdown" name="LocationId" class="form-select" disabled>
+                    <option value="">-- Vyber krabičku --</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nové přílohy</label>
+                <input type="file" name="files" multiple class="form-control" />
+            </div>
+
+            @if (Model.Documents != null && Model.Documents.Any())
+            {
+                <h5 class="mt-4 mb-3"><i class="bi bi-paperclip"></i> Přílohy</h5>
+                <ul class="list-group mb-3" id="documentsList">
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center" id="doc-@doc.Id">
+                            <div>
+                                <a href="~/@doc.FilePath" target="_blank">
+                                    <i class="bi bi-file-earmark-text"></i> @doc.FileName
+                                </a>
+                                <br />
+                                <small class="text-muted">@doc.UploadedAt.ToLocalTime().ToString("g")</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-doc" data-id="@doc.Id">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+
+            <div class="d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">Zpět</a>
+                <button type="submit" class="btn btn-primary">Uložit změny</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const selectedLocationId = '@Model.LocationId';
+            let selectedRack = '';
+            let selectedDrawer = '';
+            let selectedBoxId = selectedLocationId;
+
+            $.getJSON('@Url.Action("GetRacks", "Locations")', function (racks) {
+                const $rack = $('#RackDropdown');
+                $rack.empty().append('<option value="">-- Vyber regál --</option>');
+                $.each(racks, function (i, val) {
+                    $rack.append('<option value="' + val.rack + '">' + val.rack + '</option>');
+                });
+
+                if (selectedLocationId && selectedLocationId !== '0') {
+                    $.getJSON('@Url.Action("GetLocationById", "Locations")', { id: selectedLocationId }, function (loc) {
+                        selectedRack = loc.rack;
+                        selectedDrawer = loc.drawer;
+                        $rack.val(selectedRack).trigger('change');
+                    });
+                }
+            });
+
+            $('#RackDropdown').on('change', function () {
+                const rack = $(this).val();
+                const $drawer = $('#DrawerDropdown');
+                const $box = $('#BoxDropdown');
+                $drawer.prop('disabled', true);
+                $box.prop('disabled', true).empty().append('<option value="">-- Vyber krabičku --</option>');
+
+                if (rack) {
+                    $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rack }, function (drawers) {
+                        $drawer.empty().append('<option value="">-- Vyber šuplík --</option>');
+                        $.each(drawers, function (i, val) {
+                            $drawer.append('<option value="' + val.drawer + '">' + val.drawer + '</option>');
+                        });
+                        $drawer.prop('disabled', false);
+
+                        if (selectedDrawer && selectedRack === rack) {
+                            $drawer.val(selectedDrawer).trigger('change');
+                        }
+                    });
+                }
+            });
+
+            $('#DrawerDropdown').on('change', function () {
+                const rack = $('#RackDropdown').val();
+                const drawer = $(this).val();
+                const $box = $('#BoxDropdown');
+                $box.prop('disabled', true);
+
+                if (rack && drawer) {
+                    $.getJSON('@Url.Action("GetBoxes", "Locations")', { rack: rack, drawer: drawer }, function (boxes) {
+                        $box.empty().append('<option value="">-- Vyber krabičku --</option>');
+                        $.each(boxes, function (i, val) {
+                            $box.append('<option value="' + val.id + '">' + val.box + '</option>');
+                        });
+                        $box.prop('disabled', false);
+
+                        if (selectedBoxId && selectedRack === rack && selectedDrawer === drawer) {
+                            $box.val(selectedBoxId);
+                        }
+                    });
+                }
+            });
+        });
+
+
+        $(document).on('click', '.delete-doc', function () {
+            const id = $(this).data('id');
+            if (confirm('Opravdu chceš smazat tento soubor?')) {
+                $.ajax({
+                    url: '@Url.Action("DeleteDocument", "Components")',
+                    type: 'POST',
+                    data: { id: id },
+                    success: function () {
+                        $('#doc-' + id).fadeOut(300, function () { $(this).remove(); });
+                    },
+                    error: function () {
+                        alert('Nepodařilo se smazat soubor.');
+                    }
+                });
+            }
+        });
+    </script>
+}

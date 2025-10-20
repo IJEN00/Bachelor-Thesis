@@ -1,0 +1,50 @@
+﻿@model InventoryApp.Controllers.HomeViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 mb-3">
+            <h5>Celkem položek</h5>
+            <h2>@Model.TotalComponents</h2>
+            <small>Celkové množství kusů: @Model.TotalQuantity</small>
+        </div>
+        <div class="card p-3">
+            <h5>Nízký stav</h5>
+            <h2>@Model.LowStockCount</h2>
+            <a href="/Components" class="btn btn-link">Zobrazit součástky</a>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card p-3 mb-3">
+            <h5>Graf stavu skladu (poslední snapshot)</h5>
+            <canvas id="stockChart" width="400" height="200"></canvas>
+        </div>
+        <div class="card p-3">
+            <h5>Nízký stav - seznam</h5>
+            <ul>
+                @foreach (var c in Model.LowStock)
+                {
+                    <li>@c.Name — @c.Quantity ks</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // basic chart showing counts per component (limited)
+        const ctx = document.getElementById('stockChart');
+        const data = {
+        labels: [@string.Join(",", Model.LowStock.Take(10).Select(c => '"' + c.Name.Replace("\"", "\\\"") + '"'))],
+        datasets: [{
+        label: 'Počet kusů',
+        data: [@string.Join(",", Model.LowStock.Take(10).Select(c => c.Quantity.ToString()))],
+        tension: 0.3
+        }]
+        };
+        new Chart(ctx, { type: 'bar', data });
+    </script>
+}
