@@ -31,6 +31,8 @@ namespace InventoryApp.Models
 
         public ICollection<Document> Documents { get; set; } = new List<Document>();
 
+        public ICollection<ProjectItem> ProjectItems { get; set; } = new List<ProjectItem>();
+
         [NotMapped]
         public bool IsLowStock => Quantity <= 5;
     }

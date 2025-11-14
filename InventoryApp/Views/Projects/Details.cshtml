@@ -1,0 +1,457 @@
+﻿@model InventoryApp.Models.Project
+
+@{
+    ViewData["Title"] = "Náhled projektu";
+}
+
+<div class="container">
+    <h3 class="mb-4">Náhled projektu</h3>
+
+    @* HLAVIČKA PROJEKTU *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">@Model.Name</h4>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <p class="card-text text-muted">@Model.Description</p>
+            }
+
+            @{
+                var totalItems = Model.Items?.Count ?? 0;
+                var totalRequired = Model.Items?.Sum(i => i.QuantityRequired) ?? 0;
+                var totalToBuy = Model.Items?.Sum(i => i.QuantityToBuy) ?? 0;
+            }
+
+            <p class="card-text text-muted mb-1">
+                Vytvořeno: <strong>@Model.CreatedAt.ToLocalTime().ToString("g")</strong><br />
+                Počet položek: <strong>@totalItems</strong><br />
+                Celkem požadováno: <strong>@totalRequired ks</strong><br />
+                K nákupu:
+                @if (totalToBuy > 0)
+                {
+                    <strong class="text-danger">@totalToBuy ks</strong>
+                }
+                else
+                {
+                    <strong>@totalToBuy ks</strong>
+                }
+            </p>
+        </div>
+    </div>
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.Error
+        </div>
+    }
+
+    @* CARD: BOM + souhrn + nabídky *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul"></i> Kusovník
+            </h5>
+        </div>
+        <div class="card-body">
+            @* BOM tabulka *@
+            <h6 class="mb-3">Položky projektu</h6>
+
+            <table class="table table-hover align-middle shadow-sm rounded">
+                <thead class="table-light">
+                    <tr>
+                        <th>Součástka</th>
+                        <th>Požadováno</th>
+                        <th>Ze skladu</th>
+                        <th>K nákupu</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items != null && Model.Items.Any())
+                    {
+                        foreach (var item in Model.Items.OrderBy(i => i.Id))
+                        {
+                            string partName;
+
+                            if (item.Component != null)
+                            {
+                                partName = item.Component.Name;
+                            }
+                            else if (!string.IsNullOrWhiteSpace(item.CustomName))
+                            {
+                                partName = $"Custom: {item.CustomName}";
+                            }
+                            else
+                            {
+                                partName = "Unknown";
+                            }
+
+                            <tr>
+                                <td>@partName</td>
+                                <td>@item.QuantityRequired</td>
+                                <td>@item.QuantityFromStock</td>
+                                <td>@item.QuantityToBuy</td>
+                                <td class="text-end">
+                                    <form asp-action="DeleteItem" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="hidden" name="projectId" value="@Model.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Smazat">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5"><em>Zatím je tu prázdno.</em></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @* Souhrn k nákupu *@
+            @{
+                IEnumerable<(string Name, int TotalToBuy)> purchaseSummary = Enumerable.Empty<(string, int)>();
+
+                if (Model.Items != null)
+                {
+                    purchaseSummary = Model.Items
+                    .Where(i => i.QuantityToBuy > 0)
+                    .GroupBy(i =>
+                    i.Component != null
+                    ? i.Component.Name
+                    : (string.IsNullOrWhiteSpace(i.CustomName) ? "Unknown" : $"Custom: {i.CustomName}")
+                    )
+                    .Select(g => (Name: g.Key, TotalToBuy: g.Sum(i => i.QuantityToBuy)))
+                    .OrderBy(x => x.Name);
+                }
+            }
+
+            @if (purchaseSummary.Any())
+            {
+                <h6 class="mt-4 mb-2">Souhrn k nákupu</h6>
+
+                <table class="table table-hover align-middle shadow-sm rounded">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Součástka</th>
+                            <th>Celkem koupit (ks)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in purchaseSummary)
+                        {
+                            <tr>
+                                <td>@s.Name</td>
+                                <td>@s.TotalToBuy</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @* Nabídky dodavatelů *@
+            @{
+                bool anyOffers = Model.Items != null && Model.Items.Any(i => i.SupplierOffers != null && i.SupplierOffers.Any());
+            }
+
+            @if (anyOffers)
+            {
+                <h6 class="mt-4 mb-2">Nabídky</h6>
+
+                <table class="table table-hover align-middle shadow-sm rounded">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Součástka</th>
+                            <th>Dodavatel</th>
+                            <th>Cena / ks</th>
+                            <th>Měna</th>
+                            <th>K nákupu (ks)</th>
+                            <th>Celkem</th>
+                            <th class="text-end">Výběr</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            if (item.SupplierOffers == null || !item.SupplierOffers.Any())
+                            {
+                                continue;
+                            }
+
+                            string partName;
+                            if (item.Component != null)
+                                partName = item.Component.Name;
+                            else if (!string.IsNullOrWhiteSpace(item.CustomName))
+                                partName = $"Custom: {item.CustomName}";
+                            else
+                                partName = "Unknown";
+
+                            var qtyToBuy = item.QuantityToBuy;
+
+                            foreach (var offer in item.SupplierOffers)
+                            {
+                                var supplierName = offer.Supplier != null ? offer.Supplier.Name : "Unknown";
+                                var total = qtyToBuy * offer.UnitPrice;
+
+                                <tr>
+                                    <td>@partName</td>
+                                    <td>
+                                        @supplierName
+                                        @if (offer.Supplier?.HasApi == true)
+                                        {
+                                            <span class="badge bg-info text-dark ms-1">API</span>
+                                        }
+                                    </td>
+                                    <td>@offer.UnitPrice</td>
+                                    <td>@offer.Currency</td>
+                                    <td>@qtyToBuy</td>
+                                    <td>@total</td>
+                                    <td class="text-end">
+                                        @if (!string.IsNullOrWhiteSpace(offer.ProductUrl))
+                                        {
+                                            <a href="@offer.ProductUrl" target="_blank" class="btn btn-sm btn-outline-secondary ms-1">
+                                                Detail
+                                            </a>
+                                        }
+
+                                        @if (offer.IsSelected)
+                                        {
+                                            <span class="badge bg-success me-2">
+                                                <i class="bi bi-check-lg"></i> Vybráno
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="SelectOffer" method="post" class="d-inline">
+                                                <input type="hidden" name="offerId" value="@offer.Id" />
+                                                <input type="hidden" name="projectId" value="@Model.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                    Vybrat
+                                                </button>
+                                            </form>
+                                        }                                        
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            }
+            else if (Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
+            {
+                <div class="alert alert-info mt-3">
+                    Pro položky k nákupu zatím nejsou žádné nabídky. Vygeneruj je kliknutím níže.
+                </div>
+            }
+
+            @if (Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
+            {
+                <div class="mt-2 d-flex gap-2">
+                    <form asp-action="FindOffers" method="post">
+                        <input type="hidden" name="projectId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="bi bi-search"></i> Najít nabídky (mock)
+                        </button>
+                    </form>
+
+                    @if (anyOffers)
+                    {
+                        <form asp-action="AutoSelectCheapest" method="post">
+                            <input type="hidden" name="projectId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-magic"></i> Vybrat nejlevnější
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="btn btn-outline-primary"
+                                disabled
+                                title="Nejdřív vygeneruj nabídky">
+                            <i class="bi bi-magic"></i> Vybrat nejlevnější
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* CARD: Návrh objednávky z vybraných nabídek *@
+    @{
+        IEnumerable<dynamic> selectedOffers = Enumerable.Empty<dynamic>();
+
+        if (Model.Items != null)
+        {
+            selectedOffers = Model.Items
+            .Where(i => i.SupplierOffers != null && i.SupplierOffers.Any(o => o.IsSelected))
+            .SelectMany(i => i.SupplierOffers
+            .Where(o => o.IsSelected)
+            .Select(o => new
+            {
+                Item = i,
+                Offer = o,
+                SupplierName = o.Supplier != null ? o.Supplier.Name : "Unknown"
+            }))
+            .ToList<dynamic>();
+        }
+    }
+
+    @if (selectedOffers.Any())
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-cart-check"></i> Návrh objednávky
+                </h5>
+            </div>
+            <div class="card-body">
+                @{
+                    // seskupíme podle dodavatele
+                    var groups = selectedOffers
+                    .GroupBy(x => (string)x.SupplierName)
+                    .OrderBy(g => g.Key);
+
+                    decimal grandTotal = 0m;
+                }
+
+                @foreach (var group in groups)
+                {
+                    var supplierName = group.Key;
+                    decimal supplierTotal = 0m;
+
+                    <h6 class="mt-3 mb-2">
+                        Dodavatel: @supplierName
+                    </h6>
+
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Součástka</th>
+                                <th>Počet ks</th>
+                                <th>Cena / ks</th>
+                                <th>Měna</th>
+                                <th>Celkem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var x in group)
+                            {
+                                var item = (InventoryApp.Models.ProjectItem)x.Item;
+                                var offer = (InventoryApp.Models.SupplierOffer)x.Offer;
+
+                                string partName;
+                                if (item.Component != null)
+                                    partName = item.Component.Name;
+                                else if (!string.IsNullOrWhiteSpace(item.CustomName))
+                                    partName = $"Custom: {item.CustomName}";
+                                else
+                                    partName = "Unknown";
+
+                                int qtyToBuy = item.QuantityToBuy;
+                                decimal lineTotal = qtyToBuy * offer.UnitPrice;
+                                supplierTotal += lineTotal;
+
+                                <tr>
+                                    <td>@partName</td>
+                                    <td>@qtyToBuy</td>
+                                    <td>@offer.UnitPrice</td>
+                                    <td>@offer.Currency</td>
+                                    <td>@lineTotal.ToString("N2") Kč</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4" class="text-end">Mezisoučet:</th>
+                                <th>@supplierTotal.ToString("N2") Kč</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    grandTotal += supplierTotal;
+                }
+
+                <hr />
+                <p class="fw-bold">
+                    Celková hodnota objednávky: @grandTotal.ToString("N2") Kč
+                </p>
+
+                <div class="mt-2">
+                    <a asp-action="ExportOrderCsv"
+                       asp-route-projectId="@Model.Id"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-download"></i> Exportovat
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* CARD: Přidání nové položky *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-plus-circle"></i> Přidat součástku do kusovníku
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddItem" method="post">
+                <input type="hidden" name="projectId" value="@Model.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label">Součástka ze skladu</label>
+                    <select id="componentSelect"
+                            name="componentId"
+                            class="form-select"
+                            asp-items="@(ViewData["ComponentId"] as IEnumerable<SelectListItem>)">
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Custom název (pokud není ve skladu)</label>
+                    <input type="text" name="customName" class="form-control" />
+                    <div class="form-text">
+                        Po vybrání součástky ze skladu se tento název ignoruje.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Počet kusů</label>
+                    <input type="number" name="quantityRequired" class="form-control" value="1" min="1" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Přidat</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Zpět na seznam projektů
+        </a>
+        @* případně někdy později:
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Upravit projekt</a>
+        </div>
+        *@
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#componentSelect').select2({
+                width: '100%',
+                placeholder: 'Vyber součástku',
+                allowClear: true
+            });
+        });
+    </script>
+}

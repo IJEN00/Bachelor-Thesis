@@ -6,54 +6,63 @@
             <th>ID</th>
             <th>Název</th>
             <th>Výrobce</th>
-            <th>MPN</th>
+            <th>Označení</th>
             <th class="text-center">Množství</th>
             <th>Umístění</th>
             <th class="text-end">Akce</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @if (Model != null && Model.Any())
         {
-            <tr data-id="@item.Id">
-                <td>@item.Id</td>
-                <td>@item.Name</td>
-                <td>@item.Manufacturer</td>
-                <td>@item.ManufacturerPartNumber</td>
+            @foreach (var item in Model)
+            {
+                <tr data-id="@item.Id">
+                    <td>@item.Id</td>
+                    <td>@item.Name</td>
+                    <td>@item.Manufacturer</td>
+                    <td>@item.ManufacturerPartNumber</td>
 
-                @{
-                    var qtyClass = item.Quantity <= 5
-                    ? "text-center fw-semibold text-danger"
-                    : "text-center fw-semibold";
-                }
+                    @{
+                        var qtyClass = item.Quantity <= 5
+                        ? "text-center fw-semibold text-danger"
+                        : "text-center fw-semibold";
+                    }
 
-                <td class="@qtyClass">@item.Quantity</td>
-                <td>
-                    @if (item.Location != null)
-                    {
-                        <div class="d-flex flex-wrap gap-1">
-                            <span class="badge bg-primary">@item.Location.Rack</span>
-                            @if (!string.IsNullOrEmpty(item.Location.Drawer))
-                            {
-                                <span class="badge bg-info text-dark">Šuplík @item.Location.Drawer</span>
-                            }
-                            @if (!string.IsNullOrEmpty(item.Location.Box))
-                            {
-                                <span class="badge bg-success">Krab. @item.Location.Box</span>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <span class="text-muted fst-italic">–</span>
-                    }
-                </td>
-                <td class="text-end">
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Upravit</a>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detail</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Smazat</a>
-                </td>
-            </tr>
+                    <td class="@qtyClass">@item.Quantity</td>
+                    <td>
+                        @if (item.Location != null)
+                        {
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge bg-primary">@item.Location.Rack</span>
+                                @if (!string.IsNullOrEmpty(item.Location.Drawer))
+                                {
+                                    <span class="badge bg-info text-dark">Šuplík @item.Location.Drawer</span>
+                                }
+                                @if (!string.IsNullOrEmpty(item.Location.Box))
+                                {
+                                    <span class="badge bg-success">Krab. @item.Location.Box</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic">–</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Náhled</a>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Upravit</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Smazat</a>
+                    </td>
+                </tr>
+            }
         }
+        else
+        {
+            <tr>
+                <td colspan="5"><em>Zatím je tu prázdno.</em></td>
+            </tr>
+        }       
     </tbody>
 </table>

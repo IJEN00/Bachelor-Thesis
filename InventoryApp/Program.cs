@@ -1,5 +1,6 @@
 using InventoryApp.Models;
 using InventoryApp.Services;
+using InventoryApp.Services.Suppliers;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryApp
@@ -20,7 +21,24 @@ namespace InventoryApp
             builder.Services.AddScoped<ILocationService, LocationService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+            builder.Services.AddScoped<IProjectPlanningService, ProjectPlanningService>();
+
+            builder.Services.Configure<TMEApiOptions>(builder.Configuration.GetSection("TMEApi"));
+
+            builder.Services.AddHttpClient<TMEApiClient>();
+
+            builder.Services.AddScoped<ISupplierClient, MockSupplierClient>();
+            builder.Services.AddScoped<ISupplierClient, CheapMockSupplierClient>();
+            builder.Services.AddScoped<ISupplierClient, TMEApiClient>();
+            builder.Services.AddScoped<SupplierAggregatorService>();           
+
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.Migrate();
+            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -30,7 +48,7 @@ namespace InventoryApp
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();

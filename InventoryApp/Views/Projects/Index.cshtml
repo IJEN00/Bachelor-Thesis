@@ -1,0 +1,53 @@
+﻿@model IEnumerable<InventoryApp.Models.Project>
+
+@{
+    ViewData["Title"] = "Projekty";
+}
+
+<h3 class="mb-3">Projekty</h3>
+
+<p class="text-end">
+    <a asp-action="Create" class="btn btn-success">+ Nový projekt</a>
+</p>
+
+<table class="table table-hover align-middle shadow-sm rounded">
+    <thead class="table-light">
+        <tr>
+            <th>Název</th>
+            <th>Datum vytvoření</th>
+            <th class="text-end">Akce</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var p in Model)
+            {
+                <tr data-id="@p.Id">
+                    <td>@p.Name</td>
+                    <td>@p.CreatedAt</td>
+                    <td class="text-end">
+                        <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Náhled</a>
+                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Upravit</a>
+                        <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger">Smazat</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5"><em>Zatím je tu prázdno.</em></td>
+            </tr>
+        }        
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        $(document).on('dblclick', 'table tbody tr[data-id]', function () {
+            const id = $(this).data('id');
+            window.location.href = '@Url.Action("Details", "Projects")/' + id;
+        });
+    </script>
+}
