@@ -1,4 +1,4 @@
-﻿namespace InventoryApp.Services.Suppliers
+﻿namespace InventoryApp.Services.Suppliers.TME
 {
     public class TMEApiOptions
     {

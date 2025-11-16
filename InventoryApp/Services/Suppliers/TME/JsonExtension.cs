@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace InventoryApp.Helpers
+namespace InventoryApp.Services.Suppliers.TME
 {
     public static class JsonExtension
     {

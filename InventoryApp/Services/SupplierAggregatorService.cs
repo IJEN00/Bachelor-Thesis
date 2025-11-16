@@ -41,7 +41,7 @@ namespace InventoryApp.Services
             }
 
             var itemsToBuy = project.Items
-                .Where(i => i.QuantityToBuy > 0 && i.ComponentId != null)
+                .Where(i => i.QuantityToBuy > 0)
                 .ToList();
 
             if (!itemsToBuy.Any())
@@ -72,7 +72,7 @@ namespace InventoryApp.Services
 
             await _context.SaveChangesAsync();
 
-            // a teď generujeme nabídky pro každého dodavatele
+            // generujeme nabídky pro každého dodavatele
             foreach (var item in itemsToBuy)
             {
                 foreach (var client in _clients)
@@ -81,7 +81,6 @@ namespace InventoryApp.Services
 
                     if (!suppliersByName.TryGetValue(client.SupplierName, out var supplier))
                     {
-                        // teoreticky by se stát nemělo, ale kdyby...
                         continue;
                     }
 

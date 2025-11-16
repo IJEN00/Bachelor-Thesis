@@ -11,16 +11,13 @@ namespace InventoryApp.Services.Suppliers
 
         public Task<List<SupplierOffer>> SearchAsync(ProjectItem item)
         {
-            // jednoduché mockování ceny podle počtu k nákupu
             var qty = item.QuantityToBuy > 0 ? item.QuantityToBuy : item.QuantityRequired;
 
-            // náhodná základní cena v rozumném rozsahu
             decimal basePrice = GetDeterministicPrice(item.Id);
 
             var offer = new SupplierOffer
             {
                 ProjectItemId = item.Id,
-                // SupplierId zatím neřešíme, doplníme v agregátoru
                 Description = BuildDescription(item),
                 UnitPrice = basePrice,
                 Currency = "CZK",
@@ -48,15 +45,13 @@ namespace InventoryApp.Services.Suppliers
             return "Unknown item";
         }
 
-        // jednoduchá deterministická "náhoda", ať se to nemění při každém reloadu
         private decimal GetDeterministicPrice(int key)
         {
             var bytes = BitConverter.GetBytes(key);
             using var sha = SHA256.Create();
             var hash = sha.ComputeHash(bytes);
-            // vezmeme prvních pár bytů a uděláme z nich cenu 0.10–10.00
             int value = BitConverter.ToInt32(hash, 0);
-            value = Math.Abs(value % 990) + 10; // 10–999 centů
+            value = Math.Abs(value % 990) + 10; 
             return value / 100m;
         }
 

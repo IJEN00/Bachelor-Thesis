@@ -188,7 +188,7 @@
                             if (item.Component != null)
                                 partName = item.Component.Name;
                             else if (!string.IsNullOrWhiteSpace(item.CustomName))
-                                partName = $"Custom: {item.CustomName}";
+                                partName = $"Označení: {item.CustomName}";
                             else
                                 partName = "Unknown";
 
@@ -201,25 +201,12 @@
 
                                 <tr>
                                     <td>@partName</td>
-                                    <td>
-                                        @supplierName
-                                        @if (offer.Supplier?.HasApi == true)
-                                        {
-                                            <span class="badge bg-info text-dark ms-1">API</span>
-                                        }
-                                    </td>
+                                    <td>@supplierName</td>
                                     <td>@offer.UnitPrice</td>
                                     <td>@offer.Currency</td>
                                     <td>@qtyToBuy</td>
                                     <td>@total</td>
                                     <td class="text-end">
-                                        @if (!string.IsNullOrWhiteSpace(offer.ProductUrl))
-                                        {
-                                            <a href="@offer.ProductUrl" target="_blank" class="btn btn-sm btn-outline-secondary ms-1">
-                                                Detail
-                                            </a>
-                                        }
-
                                         @if (offer.IsSelected)
                                         {
                                             <span class="badge bg-success me-2">
@@ -414,10 +401,10 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Custom název (pokud není ve skladu)</label>
+                    <label class="form-label">Označení (pokud není ve skladu)</label>
                     <input type="text" name="customName" class="form-control" />
                     <div class="form-text">
-                        Po vybrání součástky ze skladu se tento název ignoruje.
+                        Po vybrání součástky ze skladu se toto pole ignoruje.
                     </div>
                 </div>
 
