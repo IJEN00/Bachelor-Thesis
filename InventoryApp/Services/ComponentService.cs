@@ -35,7 +35,7 @@ namespace InventoryApp.Services
 
         public async Task<Component?> GetByIdAsync(int id)
         {
-            return await _db.Components.Include(c => c.Documents).FirstOrDefaultAsync(c => c.Id == id);
+            return await _db.Components.Include(c => c.Documents).Include(c => c.Location).FirstOrDefaultAsync(c => c.Id == id);
         }
 
 

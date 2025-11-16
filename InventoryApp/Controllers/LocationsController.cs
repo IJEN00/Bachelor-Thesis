@@ -14,10 +14,12 @@ namespace InventoryApp.Controllers
     public class LocationsController : Controller
     {
         private readonly ILocationService _svc;
+        private readonly AppDbContext _context;
 
-        public LocationsController(ILocationService svc)
+        public LocationsController(ILocationService svc, AppDbContext context)
         {
             _svc = svc;
+            _context = context;
         }
 
         // GET: Locations
@@ -69,6 +71,15 @@ namespace InventoryApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            bool isUsed = await _context.Components
+                .AnyAsync(c => c.LocationId == id);
+
+            if (isUsed)
+            {
+                TempData["ToastError"] = "Tuto lokaci nelze smazat, protože je přiřazena jedné nebo více součástkám.";
+                return RedirectToAction(nameof(Index));
+            }
+
             await _svc.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
