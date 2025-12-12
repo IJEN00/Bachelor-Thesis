@@ -1,32 +1,116 @@
 ﻿@model InventoryApp.Controllers.HomeViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Přehled";
+
+    var hasLow = Model.LowStockCount > 0;
+    var statusClass = hasLow ? "bg-warning-subtle text-warning border" : "bg-success-subtle text-success border";
+    var statusText = hasLow ? $"Pozor: dochází {Model.LowStockCount} položek" : "Sklad v dobrém stavu";
+
+    var hour = DateTime.Now.Hour; 
+    var greeting =
+        hour < 11 ? "Dobré ráno!" :
+        hour < 18 ? "Dobrý den!" :
+                    "Dobrý večer!";
 }
 
-<div class="row">
+<style>
+    .dash-card {
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .dash-card:hover {
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+    }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h3 class="mb-0">@greeting</h3>
+        <span class="badge @statusClass mt-1">
+            <i class="bi bi-activity me-1"></i> @statusText
+        </span>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-controller="Components" asp-action="Create" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Přidat součástku
+        </a>
+        <a asp-controller="Projects" asp-action="Create" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-clipboard-plus"></i> Nový projekt
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
     <div class="col-md-4">
-        <div class="card p-3 mb-3">
-            <h5>Celkem položek</h5>
-            <h2>@Model.TotalComponents</h2>
-            <small>Celkové množství kusů: @Model.TotalQuantity</small>
+        <div class="card p-3 mb-3 dash-card shadow-sm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 text-primary">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="text-muted small">Celkem položek</div>
+                    <div class="fs-2 fw-semibold mb-0">@Model.TotalComponents</div>
+                    <div class="text-muted small">Celkové množství: <span class="fw-semibold">@Model.TotalQuantity ks</span></div>
+                </div>
+            </div>
         </div>
-        <div class="card p-3">
-            <h5>Nízký stav</h5>
-            <h2>@Model.LowStockCount</h2>
-            <a asp-controller="Reports" asp-action="LowStock" class="btn btn-link">Zobrazit report</a>
+
+        <div class="card p-3 dash-card shadow-sm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 @(hasLow ? "text-warning" : "text-success")">
+                    <i class="bi bi-exclamation-diamond"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="text-muted small">Nízký stav</div>
+                    <div class="fs-2 fw-semibold mb-1">@Model.LowStockCount</div>
+
+                    <a asp-controller="Reports" asp-action="LowStock" class="btn btn-sm btn-outline-primary">
+                        Zobrazit report
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
+
     <div class="col-md-8">
-        <div class="card p-3 mb-3">
-            <h5>Graf stavu skladu (poslední snapshot)</h5>
-            <canvas id="stockChart" width="400" height="200"></canvas>
+        <div class="card shadow-sm mb-3 dash-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div>
+                        <h5 class="mb-0">Nejpoužívanější součástky (30 dní)</h5>
+                        <div class="text-muted small">
+                            Top spotřeba podle reálných skladových výdejů.
+                        </div>
+                    </div>
+
+                    <a asp-controller="Reports" asp-action="Consumption" asp-route-days="30"
+                       class="btn btn-sm btn-outline-primary">
+                        Zobrazit report
+                    </a>
+                </div>
+
+                @if (Model.ConsumptionLabels == null || !Model.ConsumptionLabels.Any())
+                {
+                    <div class="alert alert-info mb-0 mt-2">
+                        Zatím žádná spotřeba za posledních 30 dní.
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-2" style="height: 260px;">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                }
+            </div>
         </div>
-        <div class="card p-3">
+
+        <div class="card p-3 dash-card shadow-sm">
             <div class="d-flex align-items-center justify-content-between">
-                <h5 class="mb-0">Dochází (Top 5)</h5>
-                <a asp-controller="Reports" asp-action="LowStock" class="btn btn-sm btn-outline-primary">
-                    Celý report
-                </a>
+                <div>
+                    <h5 class="mb-0">Docházející součástky</h5>
+                    <div class="text-muted small">Nejkritičtější položky podle minima.</div>
+                </div>
             </div>
 
             @if (Model.LowStock != null && Model.LowStock.Any())
@@ -49,9 +133,12 @@
                                 int q = c.Quantity; // byte -> int
                                 int toBuy = Math.Max(rp - q, 0);
 
-                                <tr>
+                                var rowClass = q == 0 ? "table-danger" : (q <= rp ? "table-warning" : "");
+                                var qtyClass = q == 0 ? "text-danger fw-semibold" : (q <= rp ? "text-warning fw-semibold" : "fw-semibold");
+
+                                <tr class="@rowClass">
                                     <td class="fw-semibold">@c.Name</td>
-                                    <td class="text-center">@q</td>
+                                    <td class="text-center @qtyClass">@q</td>
                                     <td class="text-center">@rp</td>
                                     <td class="text-center">
                                         @if (toBuy > 0)
@@ -75,7 +162,9 @@
             }
             else
             {
-                <div class="text-muted mt-2">Žádné položky pod minimem.</div>
+                <div class="alert alert-success mt-2 mb-0">
+                    Žádné položky pod minimem.
+                </div>
             }
         </div>
     </div>
@@ -83,15 +172,59 @@
 
 @section Scripts {
     <script>
-        const ctx = document.getElementById('stockChart');
-        const data = {
-        labels: [@string.Join(",", Model.LowStock.Take(10).Select(c => '"' + c.Name.Replace("\"", "\\\"") + '"'))],
-        datasets: [{
-        label: 'Počet kusů',
-        data: [@string.Join(",", Model.LowStock.Take(10).Select(c => c.Quantity.ToString()))],
-        tension: 0.3
-        }]
-        };
-        new Chart(ctx, { type: 'bar', data });
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ConsumptionLabels));
+        const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ConsumptionValues));
+
+        const shorten = (s, max = 18) => (s && s.length > max) ? (s.slice(0, max - 1) + "…") : s;
+
+        if (labels && labels.length > 0) {
+            const ctx = document.getElementById("consumptionChart");
+
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Spotřeba (ks)",
+                        data: values,
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    animation: { duration: 250 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => labels[items[0].dataIndex] ?? "",
+                                label: (item) => ` Spotřeba: ${item.raw} ks`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                callback: function (value, index) {
+                                    return shorten(labels[index]);
+                                },
+                                maxRotation: 0,
+                                autoSkip: true
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 },
+                            grid: { drawBorder: false }
+                        }
+                    }
+                }
+            });
+        }
     </script>
 }

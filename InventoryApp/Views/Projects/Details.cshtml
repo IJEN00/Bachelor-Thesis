@@ -23,8 +23,8 @@
                 var totalToBuy = Model.Items?.Sum(i => i.QuantityToBuy) ?? 0;
             }
 
-            <p class="card-text text-muted mb-1">
-                Vytvořeno: <strong>@Model.CreatedAt.ToLocalTime().ToString("g")</strong><br />
+            <p class="card-text text-muted mb-3">
+                Vytvořen: <strong>@Model.CreatedAt.ToLocalTime().ToString("g")</strong><br />
                 Počet položek: <strong>@totalItems</strong><br />
                 Celkem požadováno: <strong>@totalRequired ks</strong><br />
                 K nákupu:
