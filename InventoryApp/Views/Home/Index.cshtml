@@ -13,7 +13,7 @@
         <div class="card p-3">
             <h5>Nízký stav</h5>
             <h2>@Model.LowStockCount</h2>
-            <a href="/Components" class="btn btn-link">Zobrazit součástky</a>
+            <a asp-controller="Reports" asp-action="LowStock" class="btn btn-link">Zobrazit report</a>
         </div>
     </div>
     <div class="col-md-8">
@@ -22,20 +22,67 @@
             <canvas id="stockChart" width="400" height="200"></canvas>
         </div>
         <div class="card p-3">
-            <h5>Nízký stav - seznam</h5>
-            <ul>
-                @foreach (var c in Model.LowStock)
-                {
-                    <li>@c.Name — @c.Quantity ks</li>
-                }
-            </ul>
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">Dochází (Top 5)</h5>
+                <a asp-controller="Reports" asp-action="LowStock" class="btn btn-sm btn-outline-primary">
+                    Celý report
+                </a>
+            </div>
+
+            @if (Model.LowStock != null && Model.LowStock.Any())
+            {
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Název</th>
+                                <th class="text-center">Sklad</th>
+                                <th class="text-center">Min</th>
+                                <th class="text-center">Koupit</th>
+                                <th class="text-end"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.LowStock.Take(5))
+                            {
+                                int rp = (c.ReorderPoint ?? 5);
+                                int q = c.Quantity; // byte -> int
+                                int toBuy = Math.Max(rp - q, 0);
+
+                                <tr>
+                                    <td class="fw-semibold">@c.Name</td>
+                                    <td class="text-center">@q</td>
+                                    <td class="text-center">@rp</td>
+                                    <td class="text-center">
+                                        @if (toBuy > 0)
+                                        {
+                                            <span class="badge bg-secondary">@toBuy</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">0</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <a asp-controller="Components" asp-action="Details" asp-route-id="@c.Id"
+                                           class="btn btn-sm btn-outline-secondary">Detail</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-muted mt-2">Žádné položky pod minimem.</div>
+            }
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // basic chart showing counts per component (limited)
         const ctx = document.getElementById('stockChart');
         const data = {
         labels: [@string.Join(",", Model.LowStock.Take(10).Select(c => '"' + c.Name.Replace("\"", "\\\"") + '"'))],

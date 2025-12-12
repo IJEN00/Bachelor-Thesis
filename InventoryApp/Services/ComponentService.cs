@@ -39,9 +39,13 @@ namespace InventoryApp.Services
         }
 
 
-        public async Task<List<Component>> GetLowStockAsync(int threshold)
+        public async Task<List<Component>> GetLowStockAsync()
         {
-            return await _db.Components.Where(c => c.Quantity <= threshold).ToListAsync();
+            return await _db.Components
+                .Include(c => c.Location)
+                .Where(c => c.Quantity <= (c.ReorderPoint ?? 5))
+                .OrderBy(c => c.Quantity)
+                .ToListAsync();
         }
 
 
@@ -50,5 +54,11 @@ namespace InventoryApp.Services
             _db.Components.Update(component);
             await _db.SaveChangesAsync();
         }
+
+        public Task<int> GetTotalComponentsAsync()
+            => _db.Components.CountAsync();
+
+        public Task<int> GetTotalQuantityAsync()
+            => _db.Components.SumAsync(c => c.Quantity);
     }
 }

@@ -14,6 +14,7 @@ namespace InventoryApp.Models
         public DbSet<ProjectItem> ProjectItems { get; set; } = null!;
         public DbSet<Supplier> Suppliers { get; set; } = null!;
         public DbSet<SupplierOffer> SupplierOffers { get; set; } = null!;
+        public DbSet<InventoryTransaction> InventoryTransactions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +66,12 @@ namespace InventoryApp.Models
             modelBuilder.Entity<SupplierOffer>()
                 .Property(o => o.IsSelected)
                 .HasDefaultValue(false);
+
+            modelBuilder.Entity<InventoryTransaction>()
+                .HasOne(t => t.Project)
+                .WithMany()
+                .HasForeignKey(t => t.ProjectId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             base.OnModelCreating(modelBuilder);
         }

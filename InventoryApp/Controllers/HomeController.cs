@@ -14,25 +14,22 @@ namespace InventoryApp.Controllers
     public class HomeController : Controller
     {
         private readonly IComponentService _components;
-        public HomeController(IComponentService components) { _components = components; }
-
+        public HomeController(IComponentService components) => _components = components;
 
         public async Task<IActionResult> Index()
         {
-            var all = await _components.GetAllAsync();
-            var low = await _components.GetLowStockAsync(5);
-
+            var low = await _components.GetLowStockAsync();
 
             var model = new HomeViewModel
             {
-                TotalComponents = all.Count,
-                TotalQuantity = all.Sum(c => c.Quantity),
+                TotalComponents = await _components.GetTotalComponentsAsync(),
+                TotalQuantity = await _components.GetTotalQuantityAsync(),
                 LowStockCount = low.Count,
-                LowStock = low
+                LowStock = low.Take(10).ToList()
             };
+
             return View(model);
         }
-
 
         public IActionResult Error() => View();
     }

@@ -2,6 +2,7 @@
 using InventoryApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventoryApp.Controllers
 {
@@ -11,13 +12,15 @@ namespace InventoryApp.Controllers
         private readonly ILocationService _locationSvc;
         private readonly IDocumentService _docSvc;
         private readonly IWebHostEnvironment _env;
+        private readonly AppDbContext _context;
 
-        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env)
+        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env, AppDbContext context)
         {
             _svc = svc;
             _locationSvc = locationSvc;
             _env = env;
             _docSvc = doc;
+            _context = context;
         }
 
 
@@ -161,6 +164,15 @@ namespace InventoryApp.Controllers
             if (model == null) return NotFound();
             model.Documents = (await _docSvc.GetByIdAsync(id)).ToList();
             model.Location = await _locationSvc.GetByIdAsync(model.LocationId ?? 0);
+
+            var tx = await _context.InventoryTransactions
+                .Where(t => t.ComponentId == id)
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(10)
+                .ToListAsync();
+
+            ViewBag.RecentTransactions = tx;
+
             return View(model);
         }
 
@@ -185,6 +197,66 @@ namespace InventoryApp.Controllers
         {
             await _svc.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddStock(int id, int amount, string? note)
+        {
+            if (amount <= 0)
+            {
+                TempData["ToastError"] = "Množství musí být větší než 0.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var component = await _context.Components.FirstOrDefaultAsync(c => c.Id == id);
+            if (component == null) return NotFound();
+
+            component.Quantity = (byte)Math.Min(component.Quantity + amount, byte.MaxValue);
+
+            _context.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ComponentId = id,
+                DeltaQuantity = amount,
+                Type = InventoryTransactionType.Add,
+                Note = string.IsNullOrWhiteSpace(note) ? null : note
+            });
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UseStock(int id, int amount, string? note)
+        {
+            if (amount <= 0)
+            {
+                TempData["ToastError"] = "Množství musí být větší než 0.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var component = await _context.Components.FirstOrDefaultAsync(c => c.Id == id);
+            if (component == null) return NotFound();
+
+            if (amount > component.Quantity)
+            {
+                TempData["ToastError"] = $"Nelze odebrat {amount} ks. Na skladě je jen {component.Quantity} ks.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            component.Quantity = (byte)(component.Quantity - amount);
+
+            _context.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ComponentId = id,
+                DeltaQuantity = -amount,
+                Type = InventoryTransactionType.Use,
+                Note = string.IsNullOrWhiteSpace(note) ? null : note
+            });
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

@@ -33,7 +33,9 @@ namespace InventoryApp.Models
 
         public ICollection<ProjectItem> ProjectItems { get; set; } = new List<ProjectItem>();
 
+        public int? ReorderPoint { get; set; } = 5;
+
         [NotMapped]
-        public bool IsLowStock => Quantity <= 5;
+        public bool IsLowStock => Quantity <= (ReorderPoint ?? 5);
     }
 }

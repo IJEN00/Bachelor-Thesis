@@ -434,5 +434,64 @@ namespace InventoryApp.Controllers
 
             return File(bytes, "text/csv", fileName);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConsumeFromStock(int id)
+        {
+            var project = await _context.Projects
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.Component)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (project == null) return NotFound();
+
+            // pojistka proti opakovanému kliknutí
+            if (project.ConsumedAt != null)
+            {
+                TempData["ToastError"] = "Tento projekt už byl ze skladu odečten.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // 1) validace, že máme dost kusů
+            foreach (var item in project.Items.Where(i => i.ComponentId != null && i.QuantityFromStock > 0))
+            {
+                if (item.Component == null) continue;
+
+                if (item.QuantityFromStock > item.Component.Quantity)
+                {
+                    TempData["ToastError"] =
+                        $"Nelze odečíst {item.QuantityFromStock} ks z '{item.Component.Name}'. " +
+                        $"Na skladě je jen {item.Component.Quantity} ks.";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+            }
+
+            // 2) odečtení + transakce atomicky
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            foreach (var item in project.Items.Where(i => i.ComponentId != null && i.QuantityFromStock > 0))
+            {
+                if (item.Component == null) continue;
+
+                item.Component.Quantity -= item.QuantityFromStock;
+
+                _context.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ComponentId = item.Component.Id,
+                    DeltaQuantity = -item.QuantityFromStock,
+                    Type = InventoryTransactionType.Use,
+                    ProjectId = project.Id,
+                    Note = $"Projekt: {project.Name}"
+                });
+            }
+
+            project.ConsumedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 }

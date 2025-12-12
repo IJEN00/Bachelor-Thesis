@@ -9,6 +9,8 @@ namespace InventoryApp.Services
         Task AddAsync(Component component);
         Task UpdateAsync(Component component);
         Task DeleteAsync(int id);
-        Task<List<Component>> GetLowStockAsync(int threshold);
+        Task<List<Component>> GetLowStockAsync();
+        Task<int> GetTotalComponentsAsync();
+        Task<int> GetTotalQuantityAsync();
     }
 }

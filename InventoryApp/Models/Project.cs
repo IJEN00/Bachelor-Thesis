@@ -12,6 +12,8 @@ namespace InventoryApp.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public DateTime? ConsumedAt { get; set; }
+
         public ICollection<ProjectItem> Items { get; set; } = new List<ProjectItem>();
     }
 }

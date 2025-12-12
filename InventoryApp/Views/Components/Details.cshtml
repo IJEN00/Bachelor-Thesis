@@ -1,10 +1,55 @@
 ﻿@model InventoryApp.Models.Component
 @{
     ViewData["Title"] = "Náhled součástky";
+    ViewData["ContentWidth"] = "content-narrow";
 }
 
 <div class="container">
     <h3 class="mb-4">Náhled součástky</h3>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <form asp-action="AddStock" method="post" class="d-flex gap-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <div>
+                        <label class="form-label mb-1">Přidat</label>
+                        <input class="form-control form-control-sm" type="number" name="amount" min="1" value="1" style="width: 110px;" />
+                    </div>
+
+                    <div>
+                        <label class="form-label mb-1">Pozn.</label>
+                        <input class="form-control form-control-sm" type="text" name="note" placeholder="např. TME objednávka" style="width: 220px;" />
+                    </div>
+
+                    <button class="btn btn-sm btn-success" type="submit">
+                        <i class="bi bi-plus-lg"></i> Add
+                    </button>
+                </form>
+
+                <form asp-action="UseStock" method="post" class="d-flex gap-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <div>
+                        <label class="form-label mb-1">Odebrat</label>
+                        <input class="form-control form-control-sm" type="number" name="amount" min="1" value="1" style="width: 110px;" />
+                    </div>
+
+                    <div>
+                        <label class="form-label mb-1">Pozn.</label>
+                        <input class="form-control form-control-sm" type="text" name="note" placeholder="např. projekt X" style="width: 220px;" />
+                    </div>
+
+                    <button class="btn btn-sm btn-danger" type="submit">
+                        <i class="bi bi-dash-lg"></i> Use
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
@@ -69,6 +114,47 @@
             else
             {
                 <p class="text-muted">Žádné přílohy nejsou k dispozici.</p>
+            }
+        </div>
+    </div>
+
+    @{
+        var tx = ViewBag.RecentTransactions as List<InventoryApp.Models.InventoryTransaction>;
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-3">Poslední pohyby</h5>
+
+            @if (tx == null || !tx.Any())
+            {
+                <div class="text-muted">Zatím žádné pohyby.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Čas</th>
+                                <th>Typ</th>
+                                <th class="text-end">Δ</th>
+                                <th>Poznámka</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in tx)
+                            {
+                                <tr>
+                                    <td class="text-muted">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>@t.Type</td>
+                                    <td class="text-end fw-semibold">@t.DeltaQuantity</td>
+                                    <td>@(string.IsNullOrWhiteSpace(t.Note) ? "–" : t.Note)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </div>
     </div>

@@ -37,6 +37,29 @@
                     <strong>@totalToBuy ks</strong>
                 }
             </p>
+
+            @if (Model.ConsumedAt == null)
+            {
+                <form asp-action="ConsumeFromStock" method="post" class="d-inline"
+                      onsubmit="return confirm('Opravdu odečíst QuantityFromStock ze skladu?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-down"></i> Odečíst ze skladu
+                    </button>
+                </form>
+            }
+            else
+            {
+                <span class="badge bg-success">
+                    Odečteno: @Model.ConsumedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                </span>
+
+                <div class="alert alert-success mt-2 mb-0">
+                    <i class="bi bi-lock-fill"></i>
+                    Projekt byl odečten ze skladu a je uzamčen (read-only).
+                </div>
+            }
         </div>
     </div>
 
@@ -94,13 +117,16 @@
                                 <td>@item.QuantityFromStock</td>
                                 <td>@item.QuantityToBuy</td>
                                 <td class="text-end">
-                                    <form asp-action="DeleteItem" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <input type="hidden" name="projectId" value="@Model.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Smazat">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    @if (Model.ConsumedAt == null)
+                                    {
+                                        <form asp-action="DeleteItem" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="projectId" value="@Model.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -213,7 +239,7 @@
                                                 <i class="bi bi-check-lg"></i> Vybráno
                                             </span>
                                         }
-                                        else
+                                        else if (Model.ConsumedAt == null)
                                         {
                                             <form asp-action="SelectOffer" method="post" class="d-inline">
                                                 <input type="hidden" name="offerId" value="@offer.Id" />
@@ -222,7 +248,11 @@
                                                     Vybrat
                                                 </button>
                                             </form>
-                                        }                                        
+                                        }  
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">Projekt je uzamčen</span>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -240,21 +270,31 @@
             @if (Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
             {
                 <div class="mt-2 d-flex gap-2">
-                    <form asp-action="FindOffers" method="post">
-                        <input type="hidden" name="projectId" value="@Model.Id" />
-                        <button type="submit" class="btn btn-secondary">
-                            <i class="bi bi-search"></i> Najít nabídky
-                        </button>
-                    </form>
+                    @if (Model.ConsumedAt == null)
+                    {
+                        <form asp-action="FindOffers" method="post">
+                            <input type="hidden" name="projectId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="bi bi-search"></i> Najít nabídky
+                            </button>
+                        </form>
+                    }                 
 
                     @if (anyOffers)
                     {
-                        <form asp-action="AutoSelectCheapest" method="post">
-                            <input type="hidden" name="projectId" value="@Model.Id" />
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="bi bi-magic"></i> Vybrat nejlevnější
-                            </button>
-                        </form>
+                        @if (Model.ConsumedAt == null)
+                        {
+                            <form asp-action="AutoSelectCheapest" method="post">
+                                <input type="hidden" name="projectId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-magic"></i> Vybrat nejlevnější
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic">Projekt je uzamčen</span>
+                        }                    
                     }
                     else
                     {
@@ -381,42 +421,45 @@
     }
 
     @* ADD COMPONENT *@
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="bi bi-plus-circle"></i> Přidat součástku do kusovníku
-            </h5>
-        </div>
-        <div class="card-body">
-            <form asp-action="AddItem" method="post">
-                <input type="hidden" name="projectId" value="@Model.Id" />
+    @if (Model.ConsumedAt == null)
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Přidat součástku do kusovníku
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddItem" method="post">
+                    <input type="hidden" name="projectId" value="@Model.Id" />
 
-                <div class="mb-3">
-                    <label class="form-label">Součástka ze skladu</label>
-                    <select id="componentSelect"
-                            name="componentId"
-                            class="form-select"
-                            asp-items="@(ViewData["ComponentId"] as IEnumerable<SelectListItem>)">
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Označení (pokud není ve skladu)</label>
-                    <input type="text" name="customName" class="form-control" />
-                    <div class="form-text">
-                        Po vybrání součástky ze skladu se toto pole ignoruje.
+                    <div class="mb-3">
+                        <label class="form-label">Součástka ze skladu</label>
+                        <select id="componentSelect"
+                                name="componentId"
+                                class="form-select"
+                                asp-items="@(ViewData["ComponentId"] as IEnumerable<SelectListItem>)">
+                        </select>
                     </div>
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Počet kusů</label>
-                    <input type="number" name="quantityRequired" class="form-control" value="1" min="1" />
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label">Označení (pokud není ve skladu)</label>
+                        <input type="text" name="customName" class="form-control" />
+                        <div class="form-text">
+                            Po vybrání součástky ze skladu se toto pole ignoruje.
+                        </div>
+                    </div>
 
-                <button type="submit" class="btn btn-primary">Přidat</button>
-            </form>
+                    <div class="mb-3">
+                        <label class="form-label">Počet kusů</label>
+                        <input type="number" name="quantityRequired" class="form-control" value="1" min="1" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Přidat</button>
+                </form>
+            </div>
         </div>
-    </div>
+    }   
 
     <div class="mt-4 d-flex justify-content-between">
         <a asp-action="Index" class="btn btn-outline-secondary">

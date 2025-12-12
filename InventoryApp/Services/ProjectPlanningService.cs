@@ -24,6 +24,8 @@ namespace InventoryApp.Services
                 throw new InvalidOperationException($"Project {projectId} not found");
             }
 
+            if (project.ConsumedAt != null) return;
+
             RecalculateInMemory(project);
 
             await _context.SaveChangesAsync();

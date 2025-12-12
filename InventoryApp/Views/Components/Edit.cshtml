@@ -1,6 +1,7 @@
 ﻿@model InventoryApp.Models.Component
 @{
     ViewData["Title"] = "Upravit součástku";
+    ViewData["ContentWidth"] = "content-narrow";
 }
 
 <h3 class="mb-3">Upravit součástku</h3>
@@ -25,6 +26,12 @@
             <div class="mb-3">
                 <label asp-for="Quantity" class="form-label">Množství</label>
                 <input asp-for="Quantity" type="number" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Minimální množství</label>
+                <label asp-for="ReorderPoint" class="form-label"></label>
+                <input asp-for="ReorderPoint" class="form-control" type="number" min="0" />
+                <div class="form-text">Pod tuto hodnotu se položka označí jako docházející.</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Regál</label>

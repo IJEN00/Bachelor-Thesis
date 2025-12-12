@@ -1,0 +1,126 @@
+﻿@model List<InventoryApp.Controllers.ReportsController.ConsumptionRow>
+@{
+    ViewData["Title"] = "Spotřeba";
+    var days = (int)(ViewBag.Days ?? 30);
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var projectsOnly = (bool)(ViewBag.ProjectsOnly ?? false);
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(action == "LowStock" ? "active" : "")"
+           asp-controller="Reports" asp-action="LowStock">
+            Dochází
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(action == "Consumption" ? "active" : "")"
+           asp-controller="Reports" asp-action="Consumption">
+            Spotřeba
+        </a>
+    </li>
+</ul>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Spotřeba za posledních @days dní</h2>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <div class="btn-group" role="group" aria-label="Období">
+            <a asp-action="Consumption" asp-route-days="7" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">7 dní</a>
+            <a asp-action="Consumption" asp-route-days="30" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">30 dní</a>
+            <a asp-action="Consumption" asp-route-days="90" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">90 dní</a>
+        </div>
+
+        <div class="btn-group" role="group" aria-label="Zdroj">
+            <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="false"
+               class="btn btn-sm @(projectsOnly ? "btn-outline-secondary" : "btn-primary")">Vše</a>
+            <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="true"
+               class="btn btn-sm @(!projectsOnly ? "btn-outline-secondary" : "btn-primary")">Jen projekty</a>
+        </div>
+    </div>
+</div>
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="alert alert-info mb-0">Žádná spotřeba v daném období.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm rounded">
+            <thead class="table-light">
+                <tr>
+                    <th>Položka</th>
+                    <th>Označení</th>
+                    <th class="text-center">Spotřeba</th>
+                    <th class="text-center">Výdejů</th>
+                    <th class="text-center">Zdroj</th>
+                    <th class="text-center">Sklad</th>
+                    <th class="text-center">Min</th>
+                    <th class="text-center">Koupit</th>                   
+                    <th class="text-end">Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    var rowClass = r.Quantity == 0 ? "table-danger"
+                    : r.Quantity <= r.ReorderPoint ? "table-warning"
+                    : "";
+
+                    <tr class="@rowClass">
+                        <td class="fw-semibold">@r.Name</td>
+                        <td>@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</td>
+                        <td class="text-center fw-semibold">@r.Used</td>
+                        <td class="text-center text-muted">@r.UsesCount</td>
+                        <td class="text-center">
+                            @if (r.SourceLabel == "Mix")
+                            {
+                                <span class="badge bg-secondary"
+                                      data-bs-toggle="tooltip"
+                                      title="Projekty: @r.UsedFromProjects ks, Ruční: @r.UsedManual ks">
+                                    Mix
+                                </span>
+                            }
+                            else if (r.SourceLabel == "Projekty")
+                            {
+                                <span class="badge bg-primary"
+                                      data-bs-toggle="tooltip"
+                                      title="Projekty: @r.UsedFromProjects ks">
+                                    Projekty
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-dark"
+                                      data-bs-toggle="tooltip"
+                                      title="Ruční: @r.UsedManual ks">
+                                    Ruční
+                                </span>
+                            }
+                        </td>
+                        <td class="text-center">@r.Quantity</td>
+                        <td class="text-center">@r.ReorderPoint</td>
+                        <td class="text-center">
+                            @if (r.ToBuy > 0)
+                            {
+                                <span class="badge bg-secondary">@r.ToBuy</span>
+                            }
+                            else
+                            {
+
+                                <span class="text-muted">0</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a asp-controller="Components" asp-action="Details" asp-route-id="@r.ComponentId"
+                               class="btn btn-sm btn-outline-secondary">Detail</a>
+                            <a asp-controller="Reports" asp-action="LowStock"
+                               class="btn btn-sm btn-outline-primary">Dochází</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

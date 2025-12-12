@@ -1,0 +1,103 @@
+﻿@model List<InventoryApp.Controllers.ReportsController.LowStockRow>
+
+@{
+    ViewData["Title"] = "Dochází";
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(action == "LowStock" ? "active" : "")"
+           asp-controller="Reports" asp-action="LowStock">
+            Dochází
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(action == "Consumption" ? "active" : "")"
+           asp-controller="Reports" asp-action="Consumption">
+            Spotřeba
+        </a>
+    </li>
+</ul>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Dochází</h2>
+
+    <button class="btn btn-outline-secondary btn-sm" type="button" id="copyListBtn">
+        <i class="bi bi-clipboard"></i> Zkopírovat nákupní seznam
+    </button>
+</div>
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="alert alert-success mb-0">
+        Všechny položky jsou nad minimálním stavem.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm rounded">
+            <thead class="table-light">
+                <tr>
+                    <th>Název</th>
+                    <th>Označení</th>
+                    <th class="text-center">Sklad</th>
+                    <th class="text-center">Min</th>
+                    <th class="text-center">Koupit</th>
+                    <th>Umístění</th>
+                    <th class="text-end">Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    var rowClass = r.Quantity == 0 ? "table-danger" : "table-warning";
+
+                    <tr class="@rowClass">
+                        <td class="fw-semibold">@r.Name</td>
+                        <td>@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</td>
+                        <td class="text-center fw-semibold">@r.Quantity</td>
+                        <td class="text-center">@r.ReorderPoint</td>
+                        <td class="text-center"><span class="badge bg-secondary">@r.ToBuy</span></td>
+                        <td>@r.LocationDisplay</td>
+                        <td class="text-end">
+                            <a asp-controller="Components" asp-action="Details" asp-route-id="@r.ComponentId"
+                               class="btn btn-sm btn-outline-secondary">Náhled</a>
+                            <a asp-controller="Components" asp-action="Edit" asp-route-id="@r.ComponentId"
+                               class="btn btn-sm btn-outline-primary">Upravit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <textarea id="copyListText" class="d-none">
+@foreach (var r in Model)
+{
+@($"{r.Name} — koupit {r.ToBuy} ks\n")
+}
+    </textarea>
+}
+
+@section Scripts {
+    <script>
+        document.getElementById("copyListBtn")?.addEventListener("click", async () => {
+            const ta = document.getElementById("copyListText");
+            if (!ta) return;
+
+            const text = ta.value.trim();
+            if (!text) return;
+
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch {
+                ta.classList.remove("d-none");
+                ta.select();
+                document.execCommand("copy");
+                ta.classList.add("d-none");
+            }
+        });
+    </script>
+}
