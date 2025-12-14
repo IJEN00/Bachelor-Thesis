@@ -23,7 +23,7 @@
 
                 var qtyClass =
                     quantity == 0 ? "text-center fw-semibold text-danger" :
-                    quantity <= reorderPoint ? "text-center fw-semibold text-warning" :
+                    quantity < reorderPoint ? "text-center fw-semibold text-warning" :
                     "text-center fw-semibold";
 
                 <tr data-id="@item.Id">
@@ -43,7 +43,7 @@
                                 Není skladem
                             </span>
                         }
-                        else if (quantity <= reorderPoint)
+                        else if (quantity < reorderPoint)
                         {
                             <span class="badge bg-warning text-dark mt-1"
                                   data-bs-toggle="tooltip"

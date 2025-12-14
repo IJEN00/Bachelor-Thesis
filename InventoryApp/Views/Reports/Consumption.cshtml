@@ -65,7 +65,7 @@ else
                 @foreach (var r in Model)
                 {
                     var rowClass = r.Quantity == 0 ? "table-danger"
-                    : r.Quantity <= r.ReorderPoint ? "table-warning"
+                    : r.Quantity < r.ReorderPoint ? "table-warning"
                     : "";
 
                     <tr class="@rowClass">
@@ -114,7 +114,7 @@ else
                         </td>
                         <td class="text-end">
                             <a asp-controller="Components" asp-action="Details" asp-route-id="@r.ComponentId"
-                               class="btn btn-sm btn-outline-secondary">Detail</a>
+                               class="btn btn-sm btn-outline-secondary">Náhled</a>
                         </td>
                     </tr>
                 }

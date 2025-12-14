@@ -18,8 +18,10 @@ namespace InventoryApp.Controllers
             return RedirectToAction(nameof(LowStock));
         }
 
-        public async Task<IActionResult> LowStock()
+        public async Task<IActionResult> LowStock(string filter = "all")
         {
+            filter = (filter ?? "all").ToLowerInvariant();
+
             var components = await _db.Components
                 .Include(c => c.Location)
                 .OrderBy(c => c.Quantity)
@@ -27,19 +29,33 @@ namespace InventoryApp.Controllers
                 .ToListAsync();
 
             var rows = components
-                .Where(c => c.Quantity <= (c.ReorderPoint ?? 5))
-                .Select(c => new LowStockRow
+                .Where(c => c.Quantity < (c.ReorderPoint ?? 5))
+                .Select(c =>
                 {
-                    ComponentId = c.Id,
-                    Name = c.Name,
-                    ManufacturerPartNumber = c.ManufacturerPartNumber,
-                    Quantity = c.Quantity,
-                    ReorderPoint = (c.ReorderPoint ?? 5),
-                    ToBuy = Math.Max((c.ReorderPoint ?? 5) - c.Quantity, 0),
-                    LocationDisplay = c.Location != null ? c.Location.DisplayName : "–"
+                    int reorderPoint = c.ReorderPoint ?? 5;
+                    int qty = c.Quantity;
+
+                    return new LowStockRow
+                    {
+                        ComponentId = c.Id,
+                        Name = c.Name,
+                        ManufacturerPartNumber = c.ManufacturerPartNumber,
+                        Quantity = qty,
+                        ReorderPoint = reorderPoint,
+                        ToBuy = Math.Max(reorderPoint - qty, 0),
+                        LocationDisplay = c.Location != null ? c.Location.DisplayName : "–"
+                    };
                 })
                 .ToList();
 
+            rows = filter switch
+            {
+                "out" => rows.Where(r => r.Quantity == 0).ToList(),                    
+                "low" => rows.Where(r => r.Quantity > 0).ToList(),                     
+                _ => rows
+            };
+
+            ViewBag.Filter = filter;
             return View(rows);
         }
 

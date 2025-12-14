@@ -70,24 +70,38 @@ namespace InventoryApp.Services.Suppliers.Mouser
 
             var part = data.SearchResults.Parts.First();
 
+            var requiredQty = item.QuantityToBuy > 0 ? item.QuantityToBuy : 0;
+            if (requiredQty <= 0)
+                return offers;
+
+            int stockQty = 0;
+            if (!int.TryParse(part.AvailabilityInStock, NumberStyles.Any, CultureInfo.InvariantCulture, out stockQty))
+            {
+                int.TryParse(part.FactoryStock, NumberStyles.Any, CultureInfo.InvariantCulture, out stockQty);
+            }
+
+            if (stockQty < requiredQty)
+            {
+                Console.WriteLine($"MOUSER: stock {stockQty} < required {requiredQty} for '{symbol}' (availability='{part.Availability}')");
+                return offers;
+            }
+
             decimal unitPrice = 0m;
             if (part.PriceBreaks != null && part.PriceBreaks.Any())
             {
-                var firstBreak = part.PriceBreaks.First();
-                var raw = firstBreak.Price ?? "0";
-
-                Console.WriteLine($"MOUSER RAW PRICE: '{raw}'"); 
-
-                raw = raw.Replace("$", "")
-                         .Replace("€", "")
-                         .Replace("£", "")
+                var raw = part.PriceBreaks.First().Price ?? "0";
+                raw = raw.Replace("Kč", "", StringComparison.OrdinalIgnoreCase)
+                         .Replace("$", "").Replace("€", "").Replace("£", "")
+                         .Replace("\u00A0", " ")
                          .Trim();
 
-                if (!decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out unitPrice))
-                {
-                    decimal.TryParse(raw, NumberStyles.Any, CultureInfo.CurrentCulture, out unitPrice);
-                }
+                if (!decimal.TryParse(raw, NumberStyles.Any, new CultureInfo("cs-CZ"), out unitPrice))
+                    decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out unitPrice);
             }
+
+            var minOrderQty = 1;
+            if (!string.IsNullOrWhiteSpace(part.Min))
+                int.TryParse(part.Min, out minOrderQty);
 
             var offer = new SupplierOffer
             {
@@ -95,10 +109,12 @@ namespace InventoryApp.Services.Suppliers.Mouser
                 Description = part.Description,
                 UnitPrice = unitPrice,
                 Currency = "CZK", 
-                InStock = part.Availability.Contains("Stock"),
-                MinOrderQty = part.PriceBreaks.FirstOrDefault()?.Quantity ?? 1,
+                InStock = stockQty > 0,
+                MinOrderQty = minOrderQty,
                 LeadTimeDays = null,
-                ProductUrl = $"https://www.mouser.com/ProductDetail/{part.MouserPartNumber}"
+                ProductUrl = string.IsNullOrWhiteSpace(part.ProductDetailUrl)
+                    ? $"https://www.mouser.com/ProductDetail/{part.MouserPartNumber}"
+                    : part.ProductDetailUrl
             };
 
             offers.Add(offer);

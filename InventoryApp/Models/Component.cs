@@ -36,6 +36,6 @@ namespace InventoryApp.Models
         public int? ReorderPoint { get; set; } = 5;
 
         [NotMapped]
-        public bool IsLowStock => Quantity <= (ReorderPoint ?? 5);
+        public bool IsLowStock => Quantity < (ReorderPoint ?? 5);
     }
 }

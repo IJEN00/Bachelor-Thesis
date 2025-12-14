@@ -52,7 +52,10 @@ namespace InventoryApp.Controllers
                 return NotFound();
             }
 
-            _planningService.RecalculateInMemory(project);
+            if (project.ConsumedAt == null)
+            {
+                _planningService.RecalculateInMemory(project);
+            }
 
             var components = await _context.Components
                 .OrderBy(c => c.Name)
@@ -98,6 +101,9 @@ namespace InventoryApp.Controllers
                 project.CreatedAt = DateTime.UtcNow;
                 _context.Add(project);
                 await _context.SaveChangesAsync();
+
+                TempData["ToastSuccess"] = $"Projekt „{project.Name}“ byl úspěšně vytvořen.";
+
                 return RedirectToAction(nameof(Details), new { id = project.Id });
             }
 
@@ -229,6 +235,12 @@ namespace InventoryApp.Controllers
                 return NotFound();
             }
 
+            if (project.ConsumedAt != null)
+            {
+                TempData["ToastError"] = "Uzamčený projekt nelze smazat.";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(project);
         }
 
@@ -238,12 +250,18 @@ namespace InventoryApp.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var project = await _context.Projects.FindAsync(id);
-            if (project != null)
+            if (project == null)
+                return NotFound();
+
+            if (project.ConsumedAt != null)
             {
-                _context.Projects.Remove(project);
+                TempData["ToastError"] = "Uzamčený projekt nelze smazat.";
+                return RedirectToAction(nameof(Index));
             }
 
+            _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -265,6 +283,8 @@ namespace InventoryApp.Controllers
             await _planningService.RecalculateAndSaveAsync(projectId);
 
             await _supplierAggregator.GenerateOffersForProjectAsync(projectId);
+
+            TempData["OffersSearched"] = true;
 
             return RedirectToAction(nameof(Details), new { id = projectId });
         }
@@ -318,7 +338,6 @@ namespace InventoryApp.Controllers
 
             foreach (var item in project.Items)
             {
-                // řešíme jen položky, kde je co kupovat a existují nabídky
                 if (item.QuantityToBuy <= 0 ||
                     item.SupplierOffers == null ||
                     !item.SupplierOffers.Any())
@@ -326,7 +345,6 @@ namespace InventoryApp.Controllers
                     continue;
                 }
 
-                // najdeme nejlevnější nabídku (klidně jen podle UnitPrice)
                 var cheapest = item.SupplierOffers
                     .OrderBy(o => o.UnitPrice)
                     .FirstOrDefault();
@@ -336,7 +354,6 @@ namespace InventoryApp.Controllers
                     continue;
                 }
 
-                // označíme jen tu nejlevnější jako vybranou
                 foreach (var offer in item.SupplierOffers)
                 {
                     offer.IsSelected = offer.Id == cheapest.Id;
@@ -379,7 +396,6 @@ namespace InventoryApp.Controllers
 
             if (!selectedOffers.Any())
             {
-                // nic k exportu → klidně redirect zpět s TempData, ale pro začátek NotFound/BadRequest stačí
                 return BadRequest("Žádné vybrané nabídky k exportu.");
             }
 
@@ -404,7 +420,6 @@ namespace InventoryApp.Controllers
                 int qtyToBuy = item.QuantityToBuy;
                 decimal total = qtyToBuy * offer.UnitPrice;
 
-                // základní escapování – kdyby název obsahoval středník nebo uvozovky
                 string Escape(string value)
                 {
                     if (string.IsNullOrEmpty(value))
@@ -446,7 +461,6 @@ namespace InventoryApp.Controllers
 
             if (project == null) return NotFound();
 
-            // pojistka proti opakovanému kliknutí
             if (project.ConsumedAt != null)
             {
                 TempData["ToastError"] = "Tento projekt už byl ze skladu odečten.";

@@ -29,7 +29,10 @@
                     <td class="text-end">
                         <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Náhled</a>
                         <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Upravit</a>
-                        <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger">Smazat</a>
+                        @if (p.ConsumedAt == null)
+                        {
+                            <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger">Smazat</a>
+                        }
                     </td>
                 </tr>
             }

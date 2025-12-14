@@ -43,7 +43,7 @@ namespace InventoryApp.Services
         {
             return await _db.Components
                 .Include(c => c.Location)
-                .Where(c => c.Quantity <= (c.ReorderPoint ?? 5))
+                .Where(c => c.Quantity < (c.ReorderPoint ?? 5))
                 .OrderBy(c => c.Quantity)
                 .ToListAsync();
         }

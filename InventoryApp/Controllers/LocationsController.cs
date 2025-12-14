@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,7 +56,10 @@ namespace InventoryApp.Controllers
         {
             if (!ModelState.IsValid) return View(location);
 
-            await _svc.AddAsync(location); 
+            await _svc.AddAsync(location);
+
+            TempData["ToastSuccess"] = $"Umístění „{location.Rack}-{location.Drawer}-{location.Box}“ bylo úspěšně vytvořeno.";
+
             return RedirectToAction(nameof(Index));
         }
 

@@ -97,6 +97,8 @@ namespace InventoryApp.Controllers
                 }
             }
 
+            TempData["ToastSuccess"] = $"Součástka „{c.Name}“ byla vytvořena.";
+
             return RedirectToAction(nameof(Index));
         }
 

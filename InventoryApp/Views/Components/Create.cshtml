@@ -4,66 +4,134 @@
     ViewData["ContentWidth"] = "content-narrow";
 }
 
-<h3>Nová součástka</h3>
+<div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
+    <div>
+        <h3 class="mb-1">Nová součástka</h3>
+        <div class="text-muted">Vyplň údaje, nastav umístění a přidej přílohy (volitelné).</div>
+    </div>
+</div>
+
 <form asp-action="Create" method="post" enctype="multipart/form-data">
-    <div class="mb-3">
-        <label class="form-label">Název</label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Výrobce</label>
-        <input asp-for="Manufacturer" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">MPN</label>
-        <input asp-for="ManufacturerPartNumber" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Množství</label>
-        <input asp-for="Quantity" type="number" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Minimální množství</label>
-        <label asp-for="ReorderPoint" class="form-label"></label>
-        <input asp-for="ReorderPoint" class="form-control" type="number" min="0" />
-        <div class="form-text">Pod tuto hodnotu se položka označí jako docházející.</div>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Regál</label>
-        <select id="RackDropdown" class="form-select">
-            <option value="">-- Vyber regál --</option>
-        </select>
+    @Html.AntiForgeryToken()
+
+    <!-- ZÁKLADNÍ ÚDAJE -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Základní údaje</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Název</label>
+                <input asp-for="Name" class="form-control" placeholder="např. 10k 1% 0805" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label asp-for="Manufacturer" class="form-label">Výrobce</label>
+                    <input asp-for="Manufacturer" class="form-control" placeholder="např. Vishay" />
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label asp-for="ManufacturerPartNumber" class="form-label">MPN</label>
+                    <input asp-for="ManufacturerPartNumber" class="form-control" placeholder="např. CRCW080510K0FKEA" />
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label asp-for="Quantity" class="form-label">Počáteční množství</label>
+                    <input asp-for="Quantity" type="number" class="form-control" min="0" value="0" />
+                    <div class="form-text">Kolik kusů je nyní na skladě.</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label asp-for="ReorderPoint" class="form-label">Minimální množství</label>
+                    <input asp-for="ReorderPoint" class="form-control" type="number" min="0" />
+                    <div class="form-text">Docházející se označí, když bude <strong>sklad &lt; minimum</strong>.</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Šuplík</label>
-        <select id="DrawerDropdown" class="form-select" disabled>
-            <option value="">-- Vyber šuplík --</option>
-        </select>
+    <!-- UMÍSTĚNÍ -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Umístění ve skladu</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Regál</label>
+                    <select id="RackDropdown" class="form-select">
+                        <option value="">-- Vyber regál --</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Šuplík</label>
+                    <select id="DrawerDropdown" class="form-select" disabled>
+                        <option value="">-- Vyber šuplík --</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Krabička</label>
+                    <select id="BoxDropdown" name="LocationId" class="form-select" disabled>
+                        <option value="">-- Vyber krabičku --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Umístění je volitelné, ale doporučené kvůli lepšímu hledání.
+            </div>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Krabička</label>
-        <select id="BoxDropdown" name="LocationId" class="form-select" disabled>
-            <option value="">-- Vyber krabičku --</option>
-        </select>
+    <!-- PŘÍLOHY + PREVIEW -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-paperclip me-1"></i> Přílohy</h5>
+        </div>
+
+        <div class="card-body">
+            <label class="form-label">Vyber soubory</label>
+            <input id="filesInput" type="file" name="files" multiple class="form-control" />
+            <div class="form-text mb-2">
+                Můžeš vybrat více souborů najednou.
+            </div>
+
+            <div id="filesPreview" class="mt-2 d-none">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted small">Vybrané soubory</div>
+                    <button type="button" id="clearFilesBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i> Vymazat vše
+                    </button>
+                </div>
+
+                <ul class="list-group" id="filesList"></ul>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Přílohy</label>
-        <input type="file" name="files" multiple class="form-control" />
-        <small class="text-muted">Můžeš vybrat více souborů najednou.</small>
+    <!-- ACTIONS -->
+    <div class="d-flex gap-2 justify-content-end">
+        <a asp-action="Index" class="btn btn-outline-secondary">Zrušit</a>
+        <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Uložit součástku</button>
     </div>
-    <button class="btn btn-primary">Uložit</button>
-    <a asp-action="Index" class="btn btn-secondary">Zpět</a>
 </form>
 
 @section Scripts {
-    <script>
+    <partial name="_ValidationScriptsPartial" />
 
-        // 1. Načtení regálů při načtení stránky
+    <script>
+        // 1) Načtení regálů při načtení stránky
         $(document).ready(function () {
             $.getJSON('@Url.Action("GetRacks", "Locations")', function (data) {
                 var $rack = $('#RackDropdown');
@@ -74,11 +142,12 @@
             });
         });
 
-        // 2. Při změně regálu načti šuplíky
+        // 2) Při změně regálu načti šuplíky
         $('#RackDropdown').on('change', function () {
             var rack = $(this).val();
             var $drawer = $('#DrawerDropdown');
             var $box = $('#BoxDropdown');
+
             $drawer.prop('disabled', true);
             $box.prop('disabled', true).empty().append('<option value="">-- Vyber krabičku --</option>');
 
@@ -95,11 +164,12 @@
             }
         });
 
-        // 3. Při změně šuplíku načti krabičky
+        // 3) Při změně šuplíku načti krabičky
         $('#DrawerDropdown').on('change', function () {
             var rack = $('#RackDropdown').val();
             var drawer = $(this).val();
             var $box = $('#BoxDropdown');
+
             $box.prop('disabled', true);
 
             if (rack && drawer) {
@@ -113,6 +183,110 @@
             } else {
                 $box.empty().append('<option value="">-- Vyber krabičku --</option>');
             }
+        });
+
+        // ---- File preview ----
+        const filesInput = document.getElementById("filesInput");
+        const filesPreview = document.getElementById("filesPreview");
+        const filesList = document.getElementById("filesList");
+        const clearFilesBtn = document.getElementById("clearFilesBtn");
+
+        let selectedFiles = [];
+
+        function formatBytes(bytes) {
+            const units = ["B", "KB", "MB", "GB"];
+            let size = bytes;
+            let i = 0;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
+            }
+            return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+        }
+
+        function pickIcon(fileName) {
+            const ext = (fileName.split('.').pop() || "").toLowerCase();
+            if (["pdf"].includes(ext)) return "bi-file-earmark-pdf";
+            if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return "bi-file-earmark-image";
+            if (["txt", "md"].includes(ext)) return "bi-file-earmark-text";
+            if (["zip", "7z", "rar"].includes(ext)) return "bi-file-earmark-zip";
+            if (["xls", "xlsx", "csv"].includes(ext)) return "bi-file-earmark-spreadsheet";
+            if (["doc", "docx"].includes(ext)) return "bi-file-earmark-word";
+            return "bi-file-earmark";
+        }
+
+        function syncInputFiles() {
+            const dt = new DataTransfer();
+            for (const f of selectedFiles) dt.items.add(f);
+            filesInput.files = dt.files;
+        }
+
+        function renderPreview() {
+            filesList.innerHTML = "";
+
+            if (selectedFiles.length === 0) {
+                filesPreview.classList.add("d-none");
+                return;
+            }
+
+            filesPreview.classList.remove("d-none");
+
+            selectedFiles.forEach((file, index) => {
+                const li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center gap-2";
+
+                const left = document.createElement("div");
+                left.className = "d-flex align-items-center gap-2";
+
+                const icon = document.createElement("i");
+                icon.className = `bi ${pickIcon(file.name)} text-muted`;
+
+                const meta = document.createElement("div");
+                meta.innerHTML = `
+                    <div class="fw-semibold">${file.name}</div>
+                    <div class="text-muted small">${formatBytes(file.size)}</div>
+                `;
+
+                left.appendChild(icon);
+                left.appendChild(meta);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-outline-danger";
+                removeBtn.innerHTML = `<i class="bi bi-trash"></i>`;
+                removeBtn.title = "Odebrat soubor";
+                removeBtn.addEventListener("click", () => {
+                    selectedFiles.splice(index, 1);
+                    syncInputFiles();
+                    renderPreview();
+                });
+
+                li.appendChild(left);
+                li.appendChild(removeBtn);
+                filesList.appendChild(li);
+            });
+        }
+
+        filesInput?.addEventListener("change", (e) => {
+            const incoming = Array.from(e.target.files || []);
+            if (incoming.length === 0) return;
+
+            // deduplikace (jméno+size+lastModified)
+            for (const f of incoming) {
+                const exists = selectedFiles.some(x =>
+                    x.name === f.name && x.size === f.size && x.lastModified === f.lastModified
+                );
+                if (!exists) selectedFiles.push(f);
+            }
+
+            syncInputFiles();
+            renderPreview();
+        });
+
+        clearFilesBtn?.addEventListener("click", () => {
+            selectedFiles = [];
+            syncInputFiles();
+            renderPreview();
         });
     </script>
 }

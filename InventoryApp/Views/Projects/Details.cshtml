@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Náhled projektu";
+    bool offersSearched = TempData["OffersSearched"] as bool? ?? false;
 }
 
 <div class="container">
@@ -226,7 +227,21 @@
                                 var total = qtyToBuy * offer.UnitPrice;
 
                                 <tr>
-                                    <td>@partName</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(offer.ProductUrl))
+                                        {
+                                            <a href="@offer.ProductUrl"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               title="Otevřít produkt u dodavatele">
+                                                @partName <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            @partName
+                                        }
+                                    </td>
                                     <td>@supplierName</td>
                                     <td>@offer.UnitPrice</td>
                                     <td>@offer.Currency</td>
@@ -262,9 +277,21 @@
             }
             else if (Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
             {
-                <div class="alert alert-info mt-3">
-                    Pro položky k nákupu zatím nejsou žádné nabídky. Vygeneruj je kliknutím níže.
-                </div>
+                if (offersSearched)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Pro položky k nákupu nebyla nalezena žádná nabídka.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Pro položky k nákupu zatím nejsou žádné nabídky.
+                        Vygeneruj je kliknutím níže.
+                    </div>
+                }
             }
 
             @if (Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
