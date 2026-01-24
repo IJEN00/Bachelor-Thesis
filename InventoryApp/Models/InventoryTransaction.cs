@@ -5,9 +5,9 @@ namespace InventoryApp.Models
 {
     public enum InventoryTransactionType
     {
-        Add,        // naskladnění
-        Use,        // spotřeba
-        Adjust      // ruční korekce
+        Add,     
+        Use,        
+        Adjust      
     }
 
     public class InventoryTransaction
@@ -20,7 +20,6 @@ namespace InventoryApp.Models
         [ForeignKey(nameof(ComponentId))]
         public Component Component { get; set; } = null!;
 
-        // kladné = přidání, záporné = odebrání
         public int DeltaQuantity { get; set; }
 
         public InventoryTransactionType Type { get; set; }

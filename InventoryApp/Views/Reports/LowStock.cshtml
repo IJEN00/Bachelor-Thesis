@@ -1,118 +1,313 @@
 ﻿@model List<InventoryApp.Controllers.ReportsController.LowStockRow>
 
 @{
-    ViewData["Title"] = "Dochází";
+    ViewData["Title"] = "Docházející zásoby";
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var filter = (ViewBag.Filter as string) ?? "all";
 }
 
-<ul class="nav nav-tabs mb-3">
-    <li class="nav-item">
-        <a class="nav-link @(action == "LowStock" ? "active" : "")"
-           asp-controller="Reports" asp-action="LowStock">
-            Dochází
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @(action == "Consumption" ? "active" : "")"
-           asp-controller="Reports" asp-action="Consumption">
-            Spotřeba
-        </a>
-    </li>
-</ul>
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="mb-0">Docházející součástky</h2>
+    <style>
+        /* --- 1. DESIGN TABULKY (SHODNÝ S PROJEKTY/SOUČÁSTKAMI) --- */
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
 
-    <div class="d-flex gap-2 flex-wrap">
-        <div class="btn-group" role="group" aria-label="Zdroj">
-            <a asp-action="LowStock" asp-route-filter="all"
-               class="btn btn-sm @(filter == "all" ? "btn-primary" : "btn-outline-secondary")">Vše</a>
+        /* Hlavička tabulky */
+        #reportTable thead th {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #212529;
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
 
-            <a asp-action="LowStock" asp-route-filter="out"
-               class="btn btn-sm @(filter == "out" ? "btn-primary" : "btn-outline-secondary")">Není skladem</a>
+        /* Řádky tabulky */
+        #reportTable tbody td {
+            vertical-align: middle;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f2f2f2;
+        }
 
-            <a asp-action="LowStock" asp-route-filter="low"
-               class="btn btn-sm @(filter == "low" ? "btn-primary" : "btn-outline-secondary")">Dochází</a>
+        #reportTable tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        /* --- 2. OVLÁDACÍ PRVKY DATATABLES (TEXTY V ROZÍCH) --- */
+        .dataTables_wrapper .row:first-child {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-bottom: 0;
+            align-items: center;
+        }
+
+        .dataTables_wrapper .row:last-child {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-top: 0;
+            align-items: center;
+        }
+
+        /* Select "Zobrazit X výsledků" */
+        .dataTables_length select {
+            border-radius: 0.375rem;
+            border-color: #dee2e6;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
+            margin: 0 0.5rem;
+        }
+
+        .dataTables_length label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Input "Vyhledávání" */
+        .dataTables_filter label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_filter input {
+            border-radius: 0.375rem;
+            border: 1px solid #dee2e6;
+            padding: 0.375rem 0.75rem;
+            min-width: 250px;
+            margin-left: 0 !important;
+        }
+
+            .dataTables_filter input:focus {
+                box-shadow: 0 0 0 0.25rem rgba(13,110,253,.15);
+                border-color: #86b7fe;
+                outline: 0;
+            }
+
+        /* Stránkování */
+        .page-link {
+            border: none;
+            color: #6c757d;
+            border-radius: 0.375rem;
+            margin: 0 3px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+            .page-link:hover {
+                background-color: #f8f9fa;
+                color: #0d6efd;
+            }
+
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+        }
+
+        .page-item.disabled .page-link {
+            background-color: transparent;
+            color: #adb5bd;
+        }
+
+        .dataTables_info {
+            font-size: 0.875rem;
+            color: #6c757d !important;
+            padding-top: 0 !important;
+        }
+
+        /* Další styly pro Reporty */
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-pills .nav-link {
+            color: #495057;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            margin-right: 0.5rem;
+        }
+
+        .icon-box {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+        }
+    </style>
+}
+
+<div class="container-fluid" style="max-width: 1400px; padding-top: 1rem;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Reporty</h2>
+            <p class="text-muted mb-0">Analýza zásob a spotřeby</p>
+        </div>
+
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link @(action == "LowStock" ? "active shadow-sm" : "")" asp-controller="Reports" asp-action="LowStock">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Dochází
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(action == "Consumption" ? "active shadow-sm" : "")" asp-controller="Reports" asp-action="Consumption">
+                    <i class="bi bi-graph-down me-1"></i> Spotřeba
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card-body bg-light rounded-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="btn-group shadow-sm" role="group">
+                <a asp-action="LowStock" asp-route-filter="all" class="btn @(filter == "all" ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">Vše</a>
+                <a asp-action="LowStock" asp-route-filter="out" class="btn @(filter == "out" ? "btn-white text-danger fw-bold" : "btn-light text-muted") border">Není skladem</a>
+                <a asp-action="LowStock" asp-route-filter="low" class="btn @(filter == "low" ? "btn-white text-warning fw-bold" : "btn-light text-muted") border">Dochází</a>
+            </div>
+
+            <button id="copyListBtn" class="btn btn-outline-secondary bg-white shadow-sm border">
+                <i class="bi bi-clipboard me-1"></i> Zkopírovat seznam nákupu
+            </button>
         </div>
     </div>
-</div>
 
-@if (Model == null || Model.Count == 0)
-{
-    var msg = filter switch
+    @if (Model == null || Model.Count == 0)
     {
-        "out" => "Žádná součástka nemá 0 ks na skladě.",
-        "low" => "Žádná součástka aktuálně nedochází.",
-        _ => "Všechny položky jsou nad minimálním stavem."
-    };
+        var msg = filter switch
+        {
+            "out" => "Žádná součástka nemá 0 ks na skladě.",
+            "low" => "Žádná součástka aktuálně nedochází.",
+            _ => "Všechny položky jsou nad minimálním stavem."
+        };
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+            <div class="mb-3 text-success opacity-50"><i class="bi bi-check-circle-fill" style="font-size: 3rem;"></i></div>
+            <h5 class="fw-bold">Vše v pořádku</h5>
+            <p class="text-muted">@msg</p>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="reportTable" class="table table-hover align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Součástka</th>
+                                <th class="text-center">Stav skladu</th>
+                                <th class="text-center">Minimum</th>
+                                <th class="text-center">Koupit</th>
+                                <th>Umístění</th>
+                                <th class="text-end pe-4">Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Model)
+                            {
+                                var isOut = r.Quantity == 0;
+                                var iconClass = isOut ? "bg-danger text-danger" : "bg-warning text-warning";
+                                var icon = isOut ? "bi-x-lg" : "bi-exclamation";
 
-    <div class="alert alert-success mb-0">
-        @msg
-    </div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-hover align-middle shadow-sm rounded">
-            <thead class="table-light">
-                <tr>
-                    <th>Název</th>
-                    <th>Označení</th>
-                    <th class="text-center">Sklad</th>
-                    <th class="text-center">Min</th>
-                    <th class="text-center">Koupit</th>
-                    <th>Umístění</th>
-                    <th class="text-end">Akce</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in Model)
-                {
-                    var rowClass = r.Quantity == 0 ? "table-danger" : "table-warning";
-
-                    <tr class="@rowClass">
-                        <td class="fw-semibold">@r.Name</td>
-                        <td>@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</td>
-                        <td class="text-center fw-semibold">@r.Quantity</td>
-                        <td class="text-center">@r.ReorderPoint</td>
-                        <td class="text-center"><span class="badge bg-secondary">@r.ToBuy</span></td>
-                        <td>@r.LocationDisplay</td>
-                        <td class="text-end">
-                            <a asp-controller="Components" asp-action="Details" asp-route-id="@r.ComponentId"
-                               class="btn btn-sm btn-outline-secondary">Náhled</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <textarea id="copyListText" class="d-none">
-@foreach (var r in Model)
-{
+                                <tr style="cursor: pointer;" onclick="window.location='@Url.Action("Details", "Components", new { id = r.ComponentId })'">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-box @iconClass bg-opacity-10 me-3 flex-shrink-0">
+                                                <i class="bi @icon fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark">@r.Name</div>
+                                                <small class="text-muted">@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center fw-bold text-danger">@r.Quantity ks</td>
+                                    <td class="text-center text-muted">@r.ReorderPoint ks</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-3 py-2 rounded-pill">+@r.ToBuy ks</span>
+                                    </td>
+                                    <td class="small text-muted"><i class="bi bi-geo-alt me-1"></i> @r.LocationDisplay</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn btn-sm btn-light border shadow-sm rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-chevron-right text-muted"></i>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <textarea id="copyListText" class="d-none">
+@foreach (var r in Model){
 @($"{r.Name} — koupit {r.ToBuy} ks\n")
 }
-    </textarea>
-}
+        </textarea>
+    }
+</div>
 
 @section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
     <script>
-        document.getElementById("copyListBtn")?.addEventListener("click", async () => {
-            const ta = document.getElementById("copyListText");
-            if (!ta) return;
+        $(document).ready(function() {
+            $('#reportTable').DataTable({
+                // TOTO JE KLÍČOVÉ PRO SHODNÝ VZHLED TEXTŮ:
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/cs.json",
+                    searchPlaceholder: "Hledat v reportu..."
+                },
+                columnDefs: [
+                    { orderable: false, targets: 5 }
+                ],
+                pageLength: 25,
+                stateSave: true,
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+            });
 
-            const text = ta.value.trim();
-            if (!text) return;
-
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch {
-                ta.classList.remove("d-none");
-                ta.select();
-                document.execCommand("copy");
-                ta.classList.add("d-none");
-            }
+            // Logika kopírování...
+            document.getElementById("copyListBtn")?.addEventListener("click", async function() {
+                const ta = document.getElementById("copyListText");
+                if (!ta) return;
+                const text = ta.value.trim();
+                if (!text) { alert("Seznam je prázdný."); return; }
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="bi bi-check-lg me-1"></i> Zkopírováno!';
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-success', 'text-white');
+                    setTimeout(() => {
+                        this.innerHTML = originalHtml;
+                        this.classList.remove('btn-success', 'text-white');
+                        this.classList.add('btn-outline-secondary');
+                    }, 2000);
+                } catch {
+                    alert("Chyba kopírování.");
+                    ta.classList.remove("d-none"); ta.select();
+                }
+            });
         });
     </script>
 }

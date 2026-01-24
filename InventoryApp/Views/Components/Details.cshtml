@@ -1,252 +1,406 @@
 ﻿@model InventoryApp.Models.Component
 @{
-    ViewData["Title"] = "Náhled součástky";
-    ViewData["ContentWidth"] = "content-narrow";
+    ViewData["Title"] = $"Detail: {Model.Name}";
 
-    var tx = ViewBag.RecentTransactions as List<InventoryApp.Models.InventoryTransaction> ?? new();
-    
+    // --- Logika stavu skladu ---
     int reorderPoint = Model.ReorderPoint ?? 5;
-    int quantity = Model.Quantity; 
+    int quantity = Model.Quantity;
     int toBuy = Math.Max(reorderPoint - quantity, 0);
 
-    string qtyBadgeClass =
-        quantity == 0 ? "bg-danger" :
-        quantity < reorderPoint ? "bg-warning text-dark" :
-        "bg-success";
+    string statusColor = quantity == 0 ? "danger" : (quantity < reorderPoint ? "warning" : "success");
+    string statusText = quantity == 0 ? "Vyprodáno" : (quantity < reorderPoint ? "Dochází" : "Skladem");
+    string statusIcon = quantity == 0 ? "bi-x-circle" : (quantity < reorderPoint ? "bi-exclamation-circle" : "bi-check-circle");
+    string badgeClass = $"bg-{statusColor} bg-opacity-10 text-{statusColor} border border-{statusColor}";
 
-    string qtyTextClass =
-        quantity == 0 ? "text-danger" :
-        quantity < reorderPoint ? "text-warning" :
-        "text-success";
+    var tx = ViewBag.RecentTransactions as List<InventoryApp.Models.InventoryTransaction> ?? new();
 }
 
-<div class="container">
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+    <style>
+        .dataTables_wrapper .row {
+            margin: 0;
+            padding: 0;
+        }
 
-    <!-- Header row -->
-    <div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
+        .dataTables_filter, .dataTables_length {
+            display: none !important;
+        }
+
+        .page-link {
+            border: none;
+            color: #6c757d;
+            border-radius: 0.375rem;
+            margin: 0 3px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .page-link:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+        }
+
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+        }
+
+        .page-item.disabled .page-link {
+            background-color: transparent;
+            color: #adb5bd;
+        }
+
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem !important;
+        }
+
+        .dataTables_info {
+            display: none !important;
+        }
+    </style>
+}
+
+<div class="container py-4" style="max-width: 1200px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="mb-1">Náhled součástky</h3>
+            <h2 class="fw-bold mb-0">Detail součástky</h2>
+            <p class="text-muted mb-0">Přehled informací a historie pohybů</p>
         </div>
-
         <div class="d-flex gap-2">
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Upravit</a>
-            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">Smazat</a>
+            <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">
+                <i class="bi bi-arrow-left"></i> Zpět
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary shadow-sm">
+                <i class="bi bi-pencil me-1"></i> Upravit
+            </a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger shadow-sm">
+                <i class="bi bi-trash"></i>
+            </a>
         </div>
     </div>
 
-    <!-- Main summary card -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                <div style="min-width: 260px;">
-                    <h4 class="mb-2">@Model.Name</h4>
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3 shadow-sm border border-primary border-opacity-10">
+                    <i class="bi bi-cpu fs-1"></i>
+                </div>
 
-                    <div class="text-muted">
-                        <div>Výrobce: <span class="fw-semibold">@Model.Manufacturer</span></div>
-                        <div>MPN: <span class="fw-semibold">@Model.ManufacturerPartNumber</span></div>
+                <div class="flex-grow-1">
+                    <h3 class="fw-bold mb-1">@Model.Name</h3>
+                    <div class="d-flex align-items-center gap-3 text-muted">
+                        <small><i class="bi bi-hash"></i> ID: @Model.Id</small>
+                        @if (!string.IsNullOrEmpty(Model.Manufacturer))
+                        {
+                            <span class="vr"></span>
+                            <small><i class="bi bi-building me-1"></i> @Model.Manufacturer</small>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.ManufacturerPartNumber))
+                        {
+                            <span class="vr"></span>
+                            <small><i class="bi bi-qr-code me-1"></i> @Model.ManufacturerPartNumber</small>
+                        }
                     </div>
                 </div>
 
-                <div class="text-end" style="min-width: 220px;">
-                    <div class="text-muted small mb-1">Stav skladu</div>
-
-                    <div class="d-inline-flex align-items-center gap-2">                       
-                        @if (quantity == 0)
-                        {
-                            <span class="small fw-semibold text-danger">Není skladem</span>
-                        }
-                        else if (quantity <= reorderPoint)
-                        {
-                            <span class="small fw-semibold text-warning">Pod minimem (chybí @toBuy ks)</span>
-                        }
-                        else
-                        {
-                            <span class="small fw-semibold text-success">OK</span>
-                        }
-
-                        <span class="badge @qtyBadgeClass fs-6 px-3 py-2">
-                            @quantity ks
+                <div class="text-end border-start ps-4 d-none d-md-block">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Stav skladu</div>
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                        <h2 class="fw-bold mb-0 @(quantity == 0 ? "text-danger" : "")">@quantity <span class="fs-5 text-muted fw-normal">ks</span></h2>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge rounded-pill @badgeClass px-3 py-2">
+                            <i class="bi @statusIcon me-1"></i> @statusText
+                            @if (quantity < reorderPoint)
+                            {
+                                <span>(chybí @toBuy ks)</span>
+                            }
                         </span>
                     </div>
+                </div>
+            </div>
 
-                    <div class="mt-2">
-                        @if (Model.Location != null)
-                        {
-                            <div class="text-muted small mb-1">Umístění</div>
-                            <div class="d-flex flex-wrap justify-content-end gap-1">
-                                <span class="badge bg-primary">@Model.Location.Rack</span>
+            <div class="d-md-none mt-3 pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Stav skladu:</span>
+                    <span class="badge rounded-pill @badgeClass">@quantity ks (@statusText)</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-4">
+
+        <div class="col-lg-8">
+
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-globe me-2 text-info"></i>Online dostupnost</h5>
+                    <button id="btnLoadOffers" class="btn btn-sm btn-outline-primary rounded-pill" onclick="loadOffers(@Model.Id)">
+                        <i class="bi bi-search me-1"></i> Načíst ceny
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div id="offersContainer" class="text-muted small">
+                        Kliknutím na tlačítko zjistíte aktuální ceny a dostupnost u dodavatelů.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom px-4 pt-3">
+                    <ul class="nav nav-tabs card-header-tabs" id="detailTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active fw-bold text-dark" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">
+                                <i class="bi bi-clock-history me-2"></i>Historie pohybů
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold text-dark" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button">
+                                <i class="bi bi-paperclip me-2"></i>Přílohy <span class="badge bg-light text-dark border ms-1">@(Model.Documents?.Count ?? 0)</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="tab-content" id="detailTabsContent">
+
+                        <div class="tab-pane fade show active" id="history" role="tabpanel">
+                            @if (tx.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table id="historyTable" class="table table-hover align-middle mb-0" style="width:100%">
+                                        <thead class="bg-light text-muted small text-uppercase">
+                                            <tr>
+                                                <th class="ps-4">Datum</th>
+                                                <th>Typ</th>
+                                                <th class="text-center">Změna</th>
+                                                <th class="pe-4">Poznámka</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var t in tx)
+                                            {
+                                                var isPlus = t.DeltaQuantity > 0;
+                                                var color = isPlus ? "text-success" : "text-danger";
+                                                var sign = isPlus ? "+" : "";
+                                                <tr>
+                                                    <td class="ps-4 text-muted small" data-order="@t.CreatedAt.Ticks">
+                                                        @t.CreatedAt.ToLocalTime().ToString("d. M. yyyy HH:mm")
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border fw-normal">@t.Type</span>
+                                                    </td>
+                                                    <td class="text-center fw-bold @color">
+                                                        @sign@t.DeltaQuantity
+                                                    </td>
+                                                    <td class="pe-4 text-muted small">
+                                                        @(string.IsNullOrWhiteSpace(t.Note) ? "–" : t.Note)
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-5 text-center text-muted">
+                                    <i class="bi bi-clock-history fs-1 opacity-25"></i>
+                                    <p class="mt-2 mb-0">Zatím žádné pohyby.</p>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="tab-pane fade" id="files" role="tabpanel">
+                            @if (Model.Documents != null && Model.Documents.Any())
+                            {
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedAt))
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="icon-shape bg-light text-primary rounded-circle p-2">
+                                                    <i class="bi bi-file-earmark-text"></i>
+                                                </div>
+                                                <div>
+                                                    <a href="~/@doc.FilePath" target="_blank" class="fw-semibold text-decoration-none text-dark stretched-link">
+                                                        @doc.FileName
+                                                    </a>
+                                                    <div class="small text-muted">Nahráno @doc.UploadedAt.ToLocalTime().ToString("g")</div>
+                                                </div>
+                                            </div>
+                                            <i class="bi bi-download text-muted"></i>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <div class="p-5 text-center text-muted">
+                                    <i class="bi bi-folder2-open fs-1 opacity-25"></i>
+                                    <p class="mt-2 mb-0">Žádné přílohy.</p>
+                                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary mt-2">Nahrát soubor</a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase text-muted fw-bold small mb-3"><i class="bi bi-sliders me-2"></i>Rychlé akce</h6>
+
+                    <div class="bg-white p-3 rounded-3 shadow-sm mb-3 border border-success border-opacity-25">
+                        <form asp-action="AddStock" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <label class="small fw-bold text-success mb-2"><i class="bi bi-plus-circle me-1"></i> Naskladnit</label>
+                            <div class="input-group input-group-sm mb-2">
+                                <input type="number" name="amount" class="form-control" placeholder="Ks" min="1" value="1">
+                                <input type="text" name="note" class="form-control w-50" placeholder="Poznámka...">
+                                <button class="btn btn-success" type="submit">OK</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-3 shadow-sm border border-danger border-opacity-25">
+                        <form asp-action="UseStock" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <label class="small fw-bold text-danger mb-2"><i class="bi bi-dash-circle me-1"></i> Vyskladnit</label>
+                            <div class="input-group input-group-sm mb-2">
+                                <input type="number" name="amount" class="form-control" placeholder="Ks" min="1" value="1">
+                                <input type="text" name="note" class="form-control w-50" placeholder="Poznámka...">
+                                <button class="btn btn-danger" type="submit">OK</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold mb-0 text-uppercase text-muted small"><i class="bi bi-geo-alt me-2"></i>Umístění</h6>
+                </div>
+                <div class="card-body p-4">
+                    @if (Model.Location != null)
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                <span class="text-muted">Regál</span>
+                                <span class="badge bg-light text-dark border fw-normal px-2">
+                                    <i class="bi bi-grid-3x3 me-1 text-muted"></i> @Model.Location.Rack
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                <span class="text-muted">Šuplík</span>
                                 @if (!string.IsNullOrEmpty(Model.Location.Drawer))
                                 {
-                                    <span class="badge bg-info text-dark">Šuplík @Model.Location.Drawer</span>
+                                    <span class="badge bg-light text-dark border fw-normal px-2">
+                                        <i class="bi bi-inboxes me-1 text-muted"></i> @Model.Location.Drawer
+                                    </span>
                                 }
+                                else
+                                {
+
+                                    <span class="text-muted small">–</span>
+                                }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Krabička</span>
                                 @if (!string.IsNullOrEmpty(Model.Location.Box))
                                 {
-                                    <span class="badge bg-success">Krab. @Model.Location.Box</span>
+                                    <span class="badge bg-light text-dark border fw-normal px-2">
+                                        <i class="bi bi-box-seam me-1 text-muted"></i> @Model.Location.Box
+                                    </span>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted small">–</span>
                                 }
                             </div>
-                        }
-                        else
-                        {
-                            <div class="text-danger small mt-2">
-                                <i class="bi bi-exclamation-triangle me-1"></i> Umístění není přiřazeno
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <hr class="my-3" />
-
-            <!-- Quick actions -->
-            <div class="row g-3">
-                <div class="col-12 col-lg-6">
-                    <div class="p-3 border rounded-3 bg-light">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="fw-semibold">
-                                <i class="bi bi-plus-circle me-1"></i> Přidat na sklad
-                            </div>
-                            <span class="badge bg-success-subtle text-success border">Add</span>
                         </div>
-
-                        <form asp-action="AddStock" method="post" class="row g-2 align-items-end">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-
-                            <div class="col-4">
-                                <label class="form-label small mb-1">Ks</label>
-                                <input class="form-control form-control-sm" type="number" name="amount" min="1" value="1" />
-                            </div>
-                            <div class="col-8">
-                                <label class="form-label small mb-1">Poznámka</label>
-                                <input class="form-control form-control-sm" type="text" name="note" placeholder="např. TME objednávka" />
-                            </div>
-                            <div class="col-12 d-flex justify-content-end">
-                                <button class="btn btn-sm btn-success" type="submit">
-                                    <i class="bi bi-plus-lg me-1"></i> Přidat
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="col-12 col-lg-6">
-                    <div class="p-3 border rounded-3 bg-light">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="fw-semibold">
-                                <i class="bi bi-dash-circle me-1"></i> Odebrat ze skladu
-                            </div>
-                            <span class="badge bg-danger-subtle text-danger border">Use</span>
-                        </div>
-
-                        <form asp-action="UseStock" method="post" class="row g-2 align-items-end">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-
-                            <div class="col-4">
-                                <label class="form-label small mb-1">Ks</label>
-                                <input class="form-control form-control-sm" type="number" name="amount" min="1" value="1" />
-                            </div>
-                            <div class="col-8">
-                                <label class="form-label small mb-1">Poznámka</label>
-                                <input class="form-control form-control-sm" type="text" name="note" placeholder="např. projekt X" />
-                            </div>
-                            <div class="col-12 d-flex justify-content-end">
-                                <button class="btn btn-sm btn-danger" type="submit">
-                                    <i class="bi bi-dash-lg me-1"></i> Odebrat
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Attachments + transactions -->
-    <div class="row g-3">
-        <div class="col-12 col-lg-5">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0"><i class="bi bi-paperclip me-1"></i> Přílohy</h5>
-                    <span class="badge bg-secondary-subtle text-secondary border">
-                        @(Model.Documents?.Count ?? 0)
-                    </span>
-                </div>
-                <div class="card-body">
-                    @if (Model.Documents != null && Model.Documents.Any())
-                    {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedAt))
-                            {
-                                <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
-                                    <div>
-                                        <a href="~/@doc.FilePath" target="_blank" class="text-decoration-none">
-                                            <i class="bi bi-file-earmark-text me-1"></i>@doc.FileName
-                                        </a>
-                                        <div class="text-muted small">
-                                            @doc.UploadedAt.ToLocalTime().ToString("g")
-                                        </div>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
                     }
                     else
                     {
-                        <div class="text-muted">Žádné přílohy nejsou k dispozici.</div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-lg-7">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0"><i class="bi bi-clock-history me-1"></i> Poslední pohyby</h5>
-                    <span class="badge bg-secondary-subtle text-secondary border">@tx.Count</span>
-                </div>
-                <div class="card-body">
-                    @if (!tx.Any())
-                    {
-                        <div class="text-muted">Zatím žádné pohyby.</div>
-                    }
-                    else
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Čas</th>
-                                        <th>Typ</th>
-                                        <th class="text-end">Δ</th>
-                                        <th>Poznámka</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var t in tx.OrderByDescending(x => x.CreatedAt))
-                                    {
-                                        var isPlus = t.DeltaQuantity > 0;
-                                        <tr>
-                                            <td class="text-muted">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                                            <td class="text-muted">@t.Type</td>
-                                            <td class="text-end fw-semibold @(isPlus ? "text-success" : "text-danger")">
-                                                @(isPlus ? "+" : "")@t.DeltaQuantity
-                                            </td>
-                                            <td>@(string.IsNullOrWhiteSpace(t.Note) ? "–" : t.Note)</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <div class="text-center py-3 text-muted">
+                            <i class="bi bi-geo-alt-fill opacity-25 fs-1"></i>
+                            <p class="mb-0 mt-2 small">Bez umístění</p>
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="small">Nastavit</a>
                         </div>
                     }
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="mt-4">
-        <a asp-action="Index" class="btn btn-outline-secondary">Zpět</a>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            if ($('#historyTable').length > 0) {
+                $('#historyTable').DataTable({
+                    language: {
+                        url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/cs.json",
+                        paginate: {
+                            first: "«",
+                            last: "»",
+                            next: "Další",
+                            previous: "Zpět"
+                        }
+                    },
+                    columnDefs: [
+                        { orderable: false, targets: [1, 2, 3] } 
+                    ],
+                    order: [[0, 'desc']],
+
+                    searching: false,
+                    lengthChange: false,
+                    info: false,
+
+                    pageLength: 5,
+
+                    stateSave: true
+                });
+            }
+        });
+
+        async function loadOffers(id) {
+            const container = document.getElementById('offersContainer');
+            const btn = document.getElementById('btnLoadOffers');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Hledám...';
+
+            try {
+                const response = await fetch('/Components/SearchOffers?id=' + id);
+                if (!response.ok) throw new Error('Chyba sítě');
+                const html = await response.text();
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger small mt-3"><i class="bi bi-exclamation-triangle me-1"></i> Chyba: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Aktualizovat';
+            }
+        }
+    </script>
+}

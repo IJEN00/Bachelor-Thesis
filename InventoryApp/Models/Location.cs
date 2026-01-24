@@ -15,11 +15,7 @@ namespace InventoryApp.Models
 
         [Display(Name = "Krabička")]
         public string? Box { get; set; }
-
-        // Navigační vlastnost – které součástky jsou zde uložené
         public ICollection<Component>? Components { get; set; }
-
-        // Pomocná metoda – zobrazení ve formátu "A-2-B"
         public string DisplayName => $"{Rack}{(Drawer != null ? "-" + Drawer : "")}{(Box != null ? "-" + Box : "")}";
     }
 }

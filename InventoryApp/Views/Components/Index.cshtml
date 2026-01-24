@@ -1,59 +1,273 @@
 ﻿@model List<InventoryApp.Models.Component>
-
 @{
-    ViewData["Title"] = "Součástky";
+    ViewData["Title"] = "Databáze součástek";
 }
 
-<h3 class="mb-3">Součástky</h3>
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
 
-<form id="filterForm" method="get" asp-action="Index" class="mb-3">
-    <div class="row g-2 align-items-center mb-2">
-        <div class="col-md-4">
-            <input type="text" name="search" value="@Context.Request.Query["search"]"
-                   class="form-control" placeholder="Hledat součástku podle názvu..." />
+    <style>
+        .dataTables_wrapper .row:first-child {
+            padding: 1rem 1.5rem; 
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-bottom: 0; 
+            align-items: center; 
+        }
+
+        .dataTables_wrapper .row:last-child {
+            padding: 1rem 1.5rem; 
+            border-top: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-top: 0;
+            align-items: center;
+        }
+
+        .dataTables_length select {
+            border-radius: 0.375rem;
+            border-color: #dee2e6;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
+            margin: 0 0.5rem;
+        }
+
+        .dataTables_length label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .dataTables_filter label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_filter input {
+            border-radius: 0.375rem;
+            border: 1px solid #dee2e6;
+            padding: 0.375rem 0.75rem;
+            margin-left: 0 !important; 
+            min-width: 250px; 
+        }
+
+        .dataTables_filter input:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13,110,253,.15);
+            border-color: #86b7fe;
+            outline: 0;
+        }
+
+        .page-link {
+            border: none;
+            color: #6c757d;
+            border-radius: 0.375rem;
+            margin: 0 3px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .page-link:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+        }
+
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3); 
+        }
+
+        .page-item.disabled .page-link {
+            background-color: transparent;
+            color: #adb5bd;
+        }
+
+        .dataTables_info {
+            font-size: 0.875rem;
+            color: #6c757d !important;
+            padding-top: 0 !important;
+        }
+
+        table.dataTable tbody td {
+            vertical-align: middle;
+        }
+
+        #componentsTable tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+    </style>
+}
+
+<div class="container-fluid" style="max-width: 1400px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Součástky</h2>
+            <p class="text-muted mb-0">Správa skladových zásob a komponent</p>
         </div>
-        <div class="col-md-1">
-            <button type="submit" class="btn btn-outline-primary w-100">Hledat</button>
-        </div>
-        <div class="col-md-1">
-            <a asp-action="Index" class="btn btn-outline-secondary w-100">Zrušit</a>
-        </div>
-        <div class="col-md-6 text-end">
-            <a asp-action="Create" class="btn btn-success">+ Přidat součástku</a>
+        <a asp-controller="Components" asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Nová součástka
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card-body bg-light rounded-4">
+            <h6 class="text-uppercase text-muted small fw-bold mb-3"><i class="bi bi-funnel me-1"></i> Filtrovat umístění</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <select id="RackFilter" class="form-select border-0 shadow-sm">
+                        <option value="">Všechny regály</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="DrawerFilter" class="form-select border-0 shadow-sm">
+                        <option value="">Všechny šuplíky</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="BoxFilter" class="form-select border-0 shadow-sm">
+                        <option value="">Všechny krabičky</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button id="resetFilters" class="btn btn-outline-secondary w-100 border-0 shadow-sm bg-white">
+                        <i class="bi bi-x-circle me-1"></i> Vyčistit filtry
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="row g-2">
-        <div class="col-md-2">
-            <select id="RackFilter" class="form-select">
-                <option value="">Regál (vše)</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <select id="DrawerFilter" class="form-select">
-                <option value="">Šuplík (vše)</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <select id="BoxFilter" class="form-select">
-                <option value="">Krabička (vše)</option>
-            </select>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="componentsTable" class="table table-hover align-middle mb-0" style="width:100%">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4 border-bottom-0">Název & Popis</th>
+                            <th class="border-bottom-0">Umístění</th>
+                            <th class="text-center border-bottom-0">Stav skladu</th>
+                            <th class="text-end pe-4 border-bottom-0">Akce</th>
+
+                            <th class="d-none">Rack</th>
+                            <th class="d-none">Drawer</th>
+                            <th class="d-none">Box</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        @foreach (var item in Model)
+                        {
+                            int reorderPoint = (item.ReorderPoint ?? 5);
+                            int quantity = item.Quantity;
+                            string statusColor = quantity == 0 ? "danger" : (quantity < reorderPoint ? "warning" : "success");
+                            string statusText = quantity == 0 ? "Vyprodáno" : (quantity < reorderPoint ? "Dochází" : "Skladem");
+                            string statusIcon = quantity == 0 ? "bi-x-circle" : (quantity < reorderPoint ? "bi-exclamation-circle" : "bi-check-circle");
+
+                            <tr data-href="@Url.Action("Details", new { id = item.Id })" style="cursor: pointer;">
+
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="icon-shape bg-light text-primary rounded-3 p-3 me-3 flex-shrink-0">
+                                            <i class="bi bi-cpu fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold text-dark">@item.Name</h6>
+                                            <small class="text-muted d-block text-truncate" style="max-width: 200px;">
+                                                @item.Manufacturer | @item.ManufacturerPartNumber
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <small class="text-muted">
+                                            @if (item.Location != null)
+                                            {
+                                                <i class="bi bi-geo-alt me-1"></i>
+                                                @($"{item.Location.Rack} / {item.Location.Drawer}")
+                                                @if (!string.IsNullOrEmpty(item.Location.Box))
+                                                {
+                                                    <span> / @item.Location.Box</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="fst-italic">Bez umístění</span>
+                                            }
+                                        </small>
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <h5 class="mb-0 fw-bold @(quantity == 0 ? "text-danger" : "")">@quantity <span class="fs-6 text-muted font-weight-normal">ks</span></h5>
+                                        <span class="badge rounded-pill bg-@statusColor bg-opacity-10 text-@statusColor px-2 py-1 mt-1 border border-@statusColor">
+                                            <i class="bi @statusIcon me-1"></i> @statusText
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <div class="dropdown position-static no-row-click">
+                                        <button class="btn btn-light btn-sm rounded-circle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 32px; height: 32px;">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil me-2"></i> Upravit</a></li>
+                                            <li><a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id"><i class="bi bi-eye me-2"></i> Detail</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id"><i class="bi bi-trash me-2"></i> Smazat</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+
+                                <td class="d-none">@item.Location?.Rack</td>
+                                <td class="d-none">@item.Location?.Drawer</td>
+                                <td class="d-none">@item.Location?.Box</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
-
-<div id="componentList">
-    @await Html.PartialAsync("_ComponentListPartial", Model)
 </div>
 
 @section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
     <script>
         $(document).ready(function () {
+            let table = $('#componentsTable').DataTable({
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/cs.json",
+                    searchPlaceholder: "Hledat název, výrobce..."
+                },
+                columnDefs: [
+                    { orderable: false, targets: 3 }, 
+                    { searchable: true, targets: [4, 5, 6] } 
+                ],
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Vše"]],
+                stateSave: true
+            });
+
             const $rack = $('#RackFilter');
             const $drawer = $('#DrawerFilter');
             const $box = $('#BoxFilter');
-            const $search = $('input[name="search"]');
-            const $form = $('#filterForm');
+
+            function filterColumn(colIndex, val) {
+                if (val) {
+                    table.column(colIndex).search('^' + $.fn.dataTable.util.escapeRegex(val) + '$', true, false).draw();
+                } else {
+                    table.column(colIndex).search('').draw();
+                }
+            }
 
             $.getJSON('@Url.Action("GetRacks", "Locations")', function (racks) {
                 $.each(racks, function (i, val) {
@@ -62,57 +276,63 @@
             });
 
             $rack.on('change', function () {
-                const rack = $(this).val();
-                $drawer.empty().append('<option value="">Šuplík (vše)</option>');
-                $box.empty().append('<option value="">Krabička (vše)</option>');
-                if (rack) {
-                    $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rack }, function (drawers) {
+                const rackVal = $(this).val();
+
+                filterColumn(4, rackVal);
+
+                $drawer.empty().append('<option value="">Všechny šuplíky</option>');
+                $box.empty().append('<option value="">Všechny krabičky</option>');
+
+                table.column(5).search('').draw();
+                table.column(6).search('').draw();
+
+                if (rackVal) {
+                    $.getJSON('@Url.Action("GetDrawers", "Locations")', { rack: rackVal }, function (drawers) {
                         $.each(drawers, function (i, val) {
                             $drawer.append('<option value="' + val.drawer + '">' + val.drawer + '</option>');
                         });
                     });
                 }
-                filterComponents();
             });
 
             $drawer.on('change', function () {
-                const rack = $rack.val();
-                const drawer = $(this).val();
-                $box.empty().append('<option value="">Krabička (vše)</option>');
-                if (rack && drawer) {
-                    $.getJSON('@Url.Action("GetBoxes", "Locations")', { rack: rack, drawer: drawer }, function (boxes) {
+                const rackVal = $rack.val();
+                const drawerVal = $(this).val();
+
+                filterColumn(5, drawerVal);
+
+                $box.empty().append('<option value="">Všechny krabičky</option>');
+                table.column(6).search('').draw();
+
+                if (rackVal && drawerVal) {
+                    $.getJSON('@Url.Action("GetBoxes", "Locations")', { rack: rackVal, drawer: drawerVal }, function (boxes) {
                         $.each(boxes, function (i, val) {
                             $box.append('<option value="' + val.box + '">' + val.box + '</option>');
                         });
                     });
                 }
-                filterComponents();
             });
 
             $box.on('change', function () {
-                filterComponents();
+                const boxVal = $(this).val();
+                filterColumn(6, boxVal);
             });
 
-            $form.on('submit', function (e) {
-                e.preventDefault(); 
-                filterComponents();
+            $('#resetFilters').on('click', function() {
+                $rack.val('').trigger('change');
+                table.search('').columns().search('').draw();
             });
 
-            function filterComponents() {
-                $.get('@Url.Action("Filter", "Components")', {
-                    rack: $rack.val(),
-                    drawer: $drawer.val(),
-                    box: $box.val(),
-                    search: $search.val()
-                }, function (data) {
-                    $('#componentList').html(data);
-                });
-            }
-        });
+            $('#componentsTable tbody').on('click', 'tr', function (e) {
+                if ($(e.target).closest('.dropdown, button, a').length) {
+                    return;
+                }
 
-        $(document).on('dblclick', 'table tbody tr[data-id]', function () {
-            const id = $(this).data('id');
-            window.location.href = '@Url.Action("Details", "Components")/' + id;
+                var url = $(this).data('href');
+                if (url) {
+                    window.location.href = url;
+                }
+            });
         });
     </script>
 }

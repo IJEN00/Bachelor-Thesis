@@ -132,7 +132,6 @@ namespace InventoryApp.Services.Suppliers.TME
 
             const string endpoint = "Products/GetPricesAndStocks.json";
 
-            // 1) připravíme parametry BEZ ApiSignature
             var parameters = new Dictionary<string, string>
             {
                 ["Language"] = "EN",
@@ -141,17 +140,14 @@ namespace InventoryApp.Services.Suppliers.TME
                 ["Country"] = "CZ"
             };
 
-            // 2) spočítáme signaturu
             var signature = TMESignatureHelper.CreateSignature(
                 _options.BaseUrl,
                 endpoint,
                 parameters,
                 _options.Secret);
 
-            // 3) přidáme ApiSignature jako další parametr
             parameters["ApiSignature"] = signature;
 
-            // 4) pošleme POST jako application/x-www-form-urlencoded
             var content = new FormUrlEncodedContent(parameters);
             var url = $"{_options.BaseUrl.TrimEnd('/')}/{endpoint}";
 
@@ -218,7 +214,7 @@ namespace InventoryApp.Services.Suppliers.TME
                             InStock = stockQty > 0,
                             MinOrderQty = 1,
                             LeadTimeDays = null,
-                            ProductUrl = null
+                            ProductUrl = $"https://www.tme.eu/cz/details/{desc}"
                         };
 
                         result.Add(offer);

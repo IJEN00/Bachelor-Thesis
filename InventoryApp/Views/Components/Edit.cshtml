@@ -1,192 +1,199 @@
 ﻿@model InventoryApp.Models.Component
 @{
     ViewData["Title"] = "Upravit součástku";
-    ViewData["ContentWidth"] = "content-narrow";
 }
 
-<div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
-    <div>
-        <h3 class="mb-1">Upravit součástku</h3>
-        <div class="text-muted">Úprava vlastností, úmístění a příloh.</div>
-    </div>
+<div class="container py-4" style="max-width: 1100px;">
 
-    <div class="d-flex gap-2">
-        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Náhled</a>
-        <a asp-action="Index" class="btn btn-outline-secondary">Zpět</a>
-    </div>
-</div>
-
-<form asp-action="Edit" method="post" enctype="multipart/form-data">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-
-    <!-- SUMMARY / STOCK INFO -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
-            <div>
-                <div class="text-muted small">Součástka</div>
-                <div class="fw-semibold">@Model.Name</div>
-            </div>
-
-            <div class="text-end">
-                <div class="text-muted small">Aktuální stav skladu</div>
-                <span class="badge bg-secondary fs-6 px-3 py-2">@Model.Quantity ks</span>
-                <div class="text-muted small mt-1">
-                    Pro změnu skladu použij
-                    <a asp-action="Details" asp-route-id="@Model.Id" class="text-decoration-none">
-                        Add/Use v náhledu
-                    </a>.
-                </div>
-
-                <input type="hidden" asp-for="Quantity" />
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Upravit součástku</h2>
+            <p class="text-muted mb-0">Změna vlastností, umístění a správa příloh</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary shadow-sm">
+                <i class="bi bi-eye me-1"></i> Náhled
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">
+                Zpět
+            </a>
         </div>
     </div>
 
-    <!-- BASIC INFO -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">Základní údaje</h5>
-        </div>
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="Quantity" />
 
-        <div class="card-body">
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label">Název</label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-12 col-md-6">
-                    <label asp-for="Manufacturer" class="form-label">Výrobce</label>
-                    <input asp-for="Manufacturer" class="form-control" />
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label asp-for="ManufacturerPartNumber" class="form-label">MPN</label>
-                    <input asp-for="ManufacturerPartNumber" class="form-control" />
-                </div>
-            </div>
-
-            <hr class="my-4" />
-
-            <div class="row g-3">
-                <div class="col-12 col-md-6">
-                    <label asp-for="ReorderPoint" class="form-label">Minimální množství</label>
-                    <input asp-for="ReorderPoint" class="form-control" type="number" min="0" />
-                    <div class="form-text">Docházející se označí, když bude <strong>sklad &lt; minimum</strong>.</div>
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center">
+                    <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3 shadow-sm border border-primary border-opacity-10">
+                        <i class="bi bi-cpu fs-2"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h4 class="fw-bold mb-0">@Model.Name</h4>
+                        <div class="text-muted small">ID: #@Model.Id</div>
+                    </div>
+                    <div class="text-end border-start ps-4">
+                        <div class="text-muted small text-uppercase fw-bold">Aktuálně skladem</div>
+                        <h2 class="fw-bold text-dark mb-0">@Model.Quantity <span class="fs-6 text-muted">ks</span></h2>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="text-decoration-none small">
+                            <i class="bi bi-box-arrow-in-down"></i> Změnit stav
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- LOCATION -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">Umístění ve skladu</h5>
-        </div>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-card-text me-2 text-primary"></i>Základní informace</h5>
+                    </div>
+                    <div class="card-body p-4">
 
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Regál</label>
-                    <select id="RackDropdown" class="form-select">
-                        <option value="">-- Vyber regál --</option>
-                    </select>
-                </div>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-bold small text-uppercase text-muted">Název součástky</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-tag"></i></span>
+                                <input asp-for="Name" class="form-control border-start-0 ps-0" />
+                            </div>
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Šuplík</label>
-                    <select id="DrawerDropdown" class="form-select" disabled>
-                        <option value="">-- Vyber šuplík --</option>
-                    </select>
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Krabička</label>
-                    <select id="BoxDropdown" name="LocationId" class="form-select" disabled>
-                        <option value="">-- Vyber krabičku --</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NEW FILES + PREVIEW -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bi bi-paperclip me-1"></i> Nové přílohy</h5>
-        </div>
-        <div class="card-body">
-            <label class="form-label">Vyber soubory</label>
-            <input id="filesInput" type="file" name="files" multiple class="form-control" />
-            <div class="form-text mb-2">Přidané soubory se uloží po kliknutí na “Uložit změny”.</div>
-
-            <div id="filesPreview" class="mt-2 d-none">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="text-muted small">Vybrané soubory</div>
-                    <button type="button" id="clearFilesBtn" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-x-lg me-1"></i> Vymazat vše
-                    </button>
-                </div>
-
-                <ul class="list-group" id="filesList"></ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- EXISTING DOCUMENTS -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light d-flex align-items-center justify-content-between">
-            <h5 class="mb-0"><i class="bi bi-folder2-open me-1"></i> Existující přílohy</h5>
-            <span class="badge bg-secondary-subtle text-secondary border">@(Model.Documents?.Count ?? 0)</span>
-        </div>
-
-        <div class="card-body">
-            @if (Model.Documents != null && Model.Documents.Any())
-            {
-                <ul class="list-group" id="documentsList">
-                    @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedAt))
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-start gap-2" id="doc-@doc.Id">
-                            <div>
-                                <a href="~/@doc.FilePath" target="_blank" class="text-decoration-none">
-                                    <i class="bi bi-file-earmark-text me-1"></i> @doc.FileName
-                                </a>
-                                <div class="text-muted small">@doc.UploadedAt.ToLocalTime().ToString("g")</div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Manufacturer" class="form-label fw-bold small text-uppercase text-muted">Výrobce</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building"></i></span>
+                                    <input asp-for="Manufacturer" class="form-control border-start-0 ps-0" />
+                                </div>
                             </div>
 
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-danger delete-doc"
-                                    data-id="@doc.Id"
-                                    title="Smazat přílohu">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <div class="text-muted">Žádné přílohy nejsou k dispozici.</div>
-            }
-        </div>
-    </div>
+                            <div class="col-md-6">
+                                <label asp-for="ManufacturerPartNumber" class="form-label fw-bold small text-uppercase text-muted">MPN (Kód)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-qr-code"></i></span>
+                                    <input asp-for="ManufacturerPartNumber" class="form-control border-start-0 ps-0" />
+                                </div>
+                            </div>
+                        </div>
 
-    <!-- ACTIONS -->
-    <div class="d-flex justify-content-end gap-2">
-        <a asp-action="Index" class="btn btn-outline-secondary">Zrušit</a>
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check-lg me-1"></i> Uložit změny
-        </button>
-    </div>
-</form>
+                        <hr class="text-muted opacity-25 my-4" />
+
+                        <div class="mb-3">
+                            <label asp-for="ReorderPoint" class="form-label fw-bold small text-uppercase text-muted">Minimální množství (Limit)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-speedometer2"></i></span>
+                                <input asp-for="ReorderPoint" class="form-control border-start-0 ps-0" type="number" min="0" />
+                            </div>
+                            <div class="form-text small mt-1">
+                                <i class="bi bi-info-circle me-1"></i> Pokud stav klesne pod tuto hodnotu, součástka se označí jako "Dochází".
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2 text-danger"></i>Umístění</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">Regál</label>
+                            <select id="RackDropdown" class="form-select bg-light border-0">
+                                <option value="">-- Vyber regál --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">Šuplík</label>
+                            <select id="DrawerDropdown" class="form-select bg-light border-0" disabled>
+                                <option value="">-- Vyber šuplík --</option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-bold small text-muted">Krabička</label>
+                            <select id="BoxDropdown" name="LocationId" class="form-select bg-light border-0" disabled>
+                                <option value="">-- Vyber krabičku --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-paperclip me-2 text-info"></i>Přílohy</h5>
+                        <span class="badge bg-light text-dark border">@(Model.Documents?.Count ?? 0)</span>
+                    </div>
+                    <div class="card-body p-4">
+
+                        <div class="mb-3">
+                            <label class="btn btn-outline-secondary w-100 border-dashed" style="border-style: dashed;">
+                                <i class="bi bi-cloud-upload me-2"></i> Vybrat soubory...
+                                <input id="filesInput" type="file" name="files" multiple class="d-none" />
+                            </label>
+                        </div>
+
+                        <div id="filesPreview" class="d-none mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted text-uppercase fw-bold">K nahrání</small>
+                                <button type="button" id="clearFilesBtn" class="btn btn-link btn-sm text-danger text-decoration-none p-0">Vymazat</button>
+                            </div>
+                            <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="filesList"></ul>
+                        </div>
+
+                        @if (Model.Documents != null && Model.Documents.Any())
+                        {
+                            <div class="mb-2">
+                                <small class="text-muted text-uppercase fw-bold">Uloženo</small>
+                            </div>
+                            <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="documentsList">
+                                @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedAt))
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2" id="doc-@doc.Id">
+                                        <div class="d-flex align-items-center overflow-hidden">
+                                            <i class="bi bi-file-earmark-text text-muted me-2"></i>
+                                            <div class="text-truncate">
+                                                <a href="~/@doc.FilePath" target="_blank" class="text-decoration-none text-dark fw-semibold">
+                                                    @doc.FileName
+                                                </a>
+                                                <div class="text-muted" style="font-size: 0.75em;">@doc.UploadedAt.ToLocalTime().ToString("d.M.yyyy HH:mm")</div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-light text-danger border-0 delete-doc rounded-circle" data-id="@doc.Id" title="Smazat">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a asp-action="Index" class="btn btn-lg btn-light border px-4">Zrušit</a>
+            <button type="submit" class="btn btn-lg btn-primary px-4 shadow-sm">
+                <i class="bi bi-check-lg me-2"></i> Uložit změny
+            </button>
+        </div>
+    </form>
+</div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 
     <script>
-        // --- Location dropdown preselect logic (tvoje) ---
         $(document).ready(function () {
             const selectedLocationId = '@Model.LocationId';
             let selectedRack = '';
@@ -255,7 +262,6 @@
             });
         });
 
-        // --- Delete existing document (tvoje) ---
         $(document).on('click', '.delete-doc', function () {
             const id = $(this).data('id');
             if (confirm('Opravdu chceš smazat tento soubor?')) {
@@ -266,14 +272,11 @@
                     success: function () {
                         $('#doc-' + id).fadeOut(200, function () { $(this).remove(); });
                     },
-                    error: function () {
-                        alert('Nepodařilo se smazat soubor.');
-                    }
+                    error: function () { alert('Chyba při mazání.'); }
                 });
             }
         });
 
-        // --- New files preview (same as Create) ---
         const filesInput = document.getElementById("filesInput");
         const filesPreview = document.getElementById("filesPreview");
         const filesList = document.getElementById("filesList");
@@ -282,89 +285,59 @@
 
         function formatBytes(bytes) {
             const units = ["B", "KB", "MB", "GB"];
-            let size = bytes;
-            let i = 0;
-            while (size >= 1024 && i < units.length - 1) {
-                size /= 1024;
-                i++;
-            }
-            return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-        }
-
-        function pickIcon(fileName) {
-            const ext = (fileName.split('.').pop() || "").toLowerCase();
-            if (["pdf"].includes(ext)) return "bi-file-earmark-pdf";
-            if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return "bi-file-earmark-image";
-            if (["txt", "md"].includes(ext)) return "bi-file-earmark-text";
-            if (["zip", "7z", "rar"].includes(ext)) return "bi-file-earmark-zip";
-            if (["xls", "xlsx", "csv"].includes(ext)) return "bi-file-earmark-spreadsheet";
-            if (["doc", "docx"].includes(ext)) return "bi-file-earmark-word";
-            return "bi-file-earmark";
-        }
-
-        function syncInputFiles() {
-            const dt = new DataTransfer();
-            for (const f of selectedFiles) dt.items.add(f);
-            filesInput.files = dt.files;
+            let size = bytes; let i = 0;
+            while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+            return `${size.toFixed(1)} ${units[i]}`;
         }
 
         function renderPreview() {
             filesList.innerHTML = "";
-
             if (selectedFiles.length === 0) {
                 filesPreview.classList.add("d-none");
                 return;
             }
-
             filesPreview.classList.remove("d-none");
 
             selectedFiles.forEach((file, index) => {
                 const li = document.createElement("li");
-                li.className = "list-group-item d-flex justify-content-between align-items-center gap-2";
-
-                const left = document.createElement("div");
-                left.className = "d-flex align-items-center gap-2";
-
-                const icon = document.createElement("i");
-                icon.className = `bi ${pickIcon(file.name)} text-muted`;
-
-                const meta = document.createElement("div");
-                meta.innerHTML = `
-                    <div class="fw-semibold">${file.name}</div>
-                    <div class="text-muted small">${formatBytes(file.size)}</div>
+                li.className = "list-group-item d-flex justify-content-between align-items-center bg-light";
+                li.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                        <i class="bi bi-file-earmark-plus text-primary"></i>
+                        <div class="text-truncate">
+                            <div class="fw-semibold small">${file.name}</div>
+                            <div class="text-muted" style="font-size: 0.7em;">${formatBytes(file.size)}</div>
+                        </div>
+                    </div>
                 `;
 
-                left.appendChild(icon);
-                left.appendChild(meta);
-
                 const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.className = "btn btn-sm btn-outline-danger";
-                removeBtn.innerHTML = `<i class="bi bi-trash"></i>`;
-                removeBtn.title = "Odebrat soubor";
-                removeBtn.addEventListener("click", () => {
+                removeBtn.className = "btn btn-sm btn-link text-danger p-0 border-0";
+                removeBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+                removeBtn.onclick = () => {
                     selectedFiles.splice(index, 1);
                     syncInputFiles();
                     renderPreview();
-                });
+                };
 
-                li.appendChild(left);
                 li.appendChild(removeBtn);
                 filesList.appendChild(li);
             });
         }
 
+        function syncInputFiles() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(f => dt.items.add(f));
+            filesInput.files = dt.files;
+        }
+
         filesInput?.addEventListener("change", (e) => {
             const incoming = Array.from(e.target.files || []);
-            if (incoming.length === 0) return;
-
-            for (const f of incoming) {
-                const exists = selectedFiles.some(x =>
-                    x.name === f.name && x.size === f.size && x.lastModified === f.lastModified
-                );
-                if (!exists) selectedFiles.push(f);
-            }
-
+            incoming.forEach(f => {
+                if (!selectedFiles.some(x => x.name === f.name && x.size === f.size)) {
+                    selectedFiles.push(f);
+                }
+            });
             syncInputFiles();
             renderPreview();
         });

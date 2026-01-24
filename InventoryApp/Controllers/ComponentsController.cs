@@ -13,14 +13,16 @@ namespace InventoryApp.Controllers
         private readonly IDocumentService _docSvc;
         private readonly IWebHostEnvironment _env;
         private readonly AppDbContext _context;
+        private readonly SupplierAggregatorService _aggregator;
 
-        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env, AppDbContext context)
+        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env, AppDbContext context, SupplierAggregatorService aggregator)
         {
             _svc = svc;
             _locationSvc = locationSvc;
             _env = env;
             _docSvc = doc;
             _context = context;
+            _aggregator = aggregator;
         }
 
 
@@ -259,6 +261,17 @@ namespace InventoryApp.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SearchOffers(int id)
+        {
+            var component = await _svc.GetByIdAsync(id);
+            if (component == null) return NotFound();
+
+            var offers = await _aggregator.SearchForComponentAsync(component);
+
+            return PartialView("_SupplierOffersPartial", offers);
         }
     }
 }

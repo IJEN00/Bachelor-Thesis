@@ -1,35 +1,61 @@
 ﻿@model InventoryApp.Models.Project
-
 @{
-    ViewData["Title"] = "Smazat Projekt";
-    ViewData["ContentWidth"] = "content-narrow";
+    ViewData["Title"] = "Smazat projekt";
 }
 
-<h3 class="mb-3 text-danger">Opravdu smazat tento projekt?</h3>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="max-width: 600px; width: 100%;">
 
-<div class="card border-danger shadow-sm mb-3">
-    <div class="card-body">
-        <dl class="row mb-0">
-            <dt class="col-sm-3">Název</dt>
-            <dd class="col-sm-9">@Model.Name</dd>
+        <div class="card-header bg-danger text-white text-center py-4 border-0">
+            <div class="mb-2">
+                <i class="bi bi-exclamation-circle-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+            </div>
+            <h4 class="mb-0 fw-bold">Opravdu smazat?</h4>
+            <p class="mb-0 opacity-75 small">Tuto akci nelze vrátit zpět.</p>
+        </div>
 
-            <dt class="col-sm-3">Popis</dt>
-            <dd class="col-sm-9">@Model.Description</dd>
+        <div class="card-body p-4 text-center">
+            <p class="text-muted mb-4">
+                Chystáte se trvale odstranit tento projekt:
+            </p>
 
-            <dt class="col-sm-3">Vytvořen</dt>
-            <dd class="col-sm-9">@Model.CreatedAt</dd>        
-        </dl>
+            <div class="bg-light rounded-3 p-3 mb-4 text-start border">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="icon-shape bg-white text-danger rounded-3 p-3 me-3 shadow-sm border">
+                        <i class="bi bi-folder2-open fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">@Model.Name</h5>
+                        <small class="text-muted">Projekt</small>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3">
+                    <span class="text-muted small text-uppercase fw-bold d-block mb-1">Popis</span>
+                    <p class="mb-0 text-dark">
+                        @(string.IsNullOrEmpty(Model.Description) ? "–" : Model.Description)
+                    </p>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                    <span class="text-muted small text-uppercase fw-bold">Vytvořeno</span>
+                    <span class="fw-bold text-dark">
+                        @Model.CreatedAt.ToLocalTime().ToString("d. M. yyyy HH:mm")
+                    </span>
+                </div>
+            </div>
+
+            <form asp-action="Delete" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex gap-2 justify-content-center mt-4">
+                    <a asp-action="Index" class="btn btn-light btn-lg px-4 border">
+                        Zrušit
+                    </a>
+                    <button type="submit" class="btn btn-danger btn-lg px-4 shadow-sm">
+                        <i class="bi bi-trash-fill me-2"></i> Smazat
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-<form asp-action="Delete" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="d-flex justify-content-between">
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Zpět
-        </a>
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Potvrdit smazání
-        </button>
-    </div>
-</form>

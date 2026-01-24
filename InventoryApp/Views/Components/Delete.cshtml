@@ -1,54 +1,74 @@
 ﻿@model InventoryApp.Models.Component
 @{
     ViewData["Title"] = "Smazat součástku";
-    ViewData["ContentWidth"] = "content-narrow";
 }
 
-<h3 class="mb-3 text-danger">Opravdu smazat tuto součástku?</h3>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="max-width: 600px; width: 100%;">
 
-<div class="card border-danger shadow-sm mb-3">
-    <div class="card-body">
-        <dl class="row mb-0">
-            <dt class="col-sm-3">Název</dt>
-            <dd class="col-sm-9">@Model.Name</dd>
+        <div class="card-header bg-danger text-white text-center py-4 border-0">
+            <div class="mb-2">
+                <i class="bi bi-exclamation-circle-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+            </div>
+            <h4 class="mb-0 fw-bold">Opravdu smazat?</h4>
+            <p class="mb-0 opacity-75 small">Tuto akci nelze vrátit zpět.</p>
+        </div>
 
-            <dt class="col-sm-3">Výrobce</dt>
-            <dd class="col-sm-9">@Model.Manufacturer</dd>
+        <div class="card-body p-4 text-center">
+            <p class="text-muted mb-4">
+                Chystáte se trvale odstranit součástku:
+            </p>
 
-            <dt class="col-sm-3">MPN</dt>
-            <dd class="col-sm-9">@Model.ManufacturerPartNumber</dd>
+            <div class="bg-light rounded-3 p-3 mb-4 text-start border">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="icon-shape bg-white text-danger rounded-3 p-3 me-3 shadow-sm border">
+                        <i class="bi bi-cpu fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">@Model.Name</h5>
+                        <small class="text-muted">@Model.Manufacturer | @Model.ManufacturerPartNumber</small>
+                    </div>
+                </div>
 
-            <dt class="col-sm-3">Umístění</dt>
-            <dd class="col-sm-9">
-                @if (Model.Location != null)
-                {
-                    <div class="d-flex flex-wrap gap-1">
-                        <span class="badge bg-primary">@Model.Location.Rack</span>
-                        @if (!string.IsNullOrEmpty(Model.Location.Drawer))
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <span class="text-muted small text-uppercase fw-bold">Umístění</span>
+                    <div>
+                        @if (Model.Location != null)
                         {
-                            <span class="badge bg-info text-dark">Šuplík @Model.Location.Drawer</span>
+                            <span class="badge bg-white text-dark border">@Model.Location.Rack</span>
+                            @if (!string.IsNullOrEmpty(Model.Location.Drawer))
+                            {
+                                <span class="badge bg-white text-dark border">@Model.Location.Drawer</span>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Location.Box))
+                            {
+                                <span class="badge bg-white text-dark border">@Model.Location.Box</span>
+                            }
                         }
-                        @if (!string.IsNullOrEmpty(Model.Location.Box))
+                        else
                         {
-                            <span class="badge bg-success">Krab. @Model.Location.Box</span>
+                            <span class="text-muted fst-italic small">Bez umístění</span>
                         }
                     </div>
-                }
-                else
-                {
-                    <span class="text-muted fst-italic">–</span>
-                }
-            </dd>
-        </dl>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                    <span class="text-muted small text-uppercase fw-bold">Skladem</span>
+                    <span class="fw-bold">@Model.Quantity ks</span>
+                </div>
+            </div>
+
+            <form asp-action="Delete" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex gap-2 justify-content-center">
+                    <a asp-action="Index" class="btn btn-light btn-lg px-4 border">
+                        Zrušit
+                    </a>
+                    <button type="submit" class="btn btn-danger btn-lg px-4 shadow-sm">
+                        <i class="bi bi-trash-fill me-2"></i> Smazat
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-<form asp-action="Delete" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="d-flex justify-content-between">
-        <a asp-action="Index" class="btn btn-outline-secondary">Zpět</a>
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Potvrdit smazání
-        </button>
-    </div>
-</form>

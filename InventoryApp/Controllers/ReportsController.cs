@@ -97,7 +97,6 @@ namespace InventoryApp.Controllers
                 .Take(50)
                 .ToListAsync();
 
-            // dotáhni názvy komponent (jednoduše, 1 dotaz navíc)
             var ids = rows.Select(r => r.ComponentId).ToList();
 
             var components = await _db.Components
@@ -130,11 +129,11 @@ namespace InventoryApp.Controllers
             public int ComponentId { get; set; }
             public string Name { get; set; } = "";
             public string? ManufacturerPartNumber { get; set; }
-            public int Used { get; set; }             // kolik ks se spotřebovalo
-            public int UsesCount { get; set; }        // kolik výdejů
-            public int Quantity { get; set; }         // aktuální sklad
-            public int ReorderPoint { get; set; }     // min
-            public int ToBuy { get; set; }            // návrh dokoupení
+            public int Used { get; set; }             
+            public int UsesCount { get; set; }        
+            public int Quantity { get; set; }         
+            public int ReorderPoint { get; set; }     
+            public int ToBuy { get; set; }            
             public int UsedFromProjects { get; set; }
             public int UsedManual { get; set; }
 

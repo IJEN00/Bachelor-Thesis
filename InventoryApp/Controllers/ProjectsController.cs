@@ -304,7 +304,6 @@ namespace InventoryApp.Controllers
 
             var projectItemId = offer.ProjectItemId;
 
-            // všechny nabídky pro tenhle ProjectItem → odznačíme
             var allOffersForItem = await _context.SupplierOffers
                 .Where(o => o.ProjectItemId == projectItemId)
                 .ToListAsync();
@@ -314,7 +313,6 @@ namespace InventoryApp.Controllers
                 o.IsSelected = false;
             }
 
-            // tu vybranou označíme
             offer.IsSelected = true;
 
             await _context.SaveChangesAsync();
@@ -381,7 +379,6 @@ namespace InventoryApp.Controllers
                 return NotFound();
             }
 
-            // vybrané nabídky
             var selectedOffers = project.Items
                 .Where(i => i.SupplierOffers != null && i.SupplierOffers.Any(o => o.IsSelected))
                 .SelectMany(i => i.SupplierOffers
@@ -401,7 +398,6 @@ namespace InventoryApp.Controllers
 
             var sb = new StringBuilder();
 
-            // hlavička CSV
             sb.AppendLine("Dodavatel;Součástka;Počet;Cena/ks;Měna;Celkem");
 
             foreach (var x in selectedOffers)
@@ -467,7 +463,6 @@ namespace InventoryApp.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // 1) validace, že máme dost kusů
             foreach (var item in project.Items.Where(i => i.ComponentId != null && i.QuantityFromStock > 0))
             {
                 if (item.Component == null) continue;
@@ -481,7 +476,6 @@ namespace InventoryApp.Controllers
                 }
             }
 
-            // 2) odečtení + transakce atomicky
             using var tx = await _context.Database.BeginTransactionAsync();
 
             foreach (var item in project.Items.Where(i => i.ComponentId != null && i.QuantityFromStock > 0))

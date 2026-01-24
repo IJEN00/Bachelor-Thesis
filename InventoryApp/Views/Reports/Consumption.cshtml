@@ -1,4 +1,5 @@
 ﻿@model List<InventoryApp.Controllers.ReportsController.ConsumptionRow>
+
 @{
     ViewData["Title"] = "Spotřeba";
     var days = (int)(ViewBag.Days ?? 30);
@@ -6,119 +7,281 @@
     var projectsOnly = (bool)(ViewBag.ProjectsOnly ?? false);
 }
 
-<ul class="nav nav-tabs mb-3">
-    <li class="nav-item">
-        <a class="nav-link @(action == "LowStock" ? "active" : "")"
-           asp-controller="Reports" asp-action="LowStock">
-            Dochází
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @(action == "Consumption" ? "active" : "")"
-           asp-controller="Reports" asp-action="Consumption">
-            Spotřeba
-        </a>
-    </li>
-</ul>
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="mb-0">Spotřeba za posledních @days dní</h2>
+    <style>
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
 
-    <div class="d-flex gap-2 flex-wrap">
-        <div class="btn-group" role="group" aria-label="Období">
-            <a asp-action="Consumption" asp-route-days="7" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">7 dní</a>
-            <a asp-action="Consumption" asp-route-days="30" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">30 dní</a>
-            <a asp-action="Consumption" asp-route-days="90" asp-route-projectsOnly="@projectsOnly" class="btn btn-sm btn-outline-secondary">90 dní</a>
+        #reportTable thead th {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #212529;
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        #reportTable tbody td {
+            vertical-align: middle;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f2f2f2;
+        }
+
+        #reportTable tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .dataTables_wrapper .row:first-child {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-bottom: 0;
+            align-items: center;
+        }
+
+        .dataTables_wrapper .row:last-child {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #f0f0f0;
+            background-color: #fff;
+            margin-top: 0;
+            align-items: center;
+        }
+
+        .dataTables_length select {
+            border-radius: 0.375rem;
+            border-color: #dee2e6;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
+            margin: 0 0.5rem;
+        }
+
+        .dataTables_length label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .dataTables_filter label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_filter input {
+            border-radius: 0.375rem;
+            border: 1px solid #dee2e6;
+            padding: 0.375rem 0.75rem;
+            min-width: 250px;
+            margin-left: 0 !important;
+        }
+
+        .dataTables_filter input:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13,110,253,.15);
+            border-color: #86b7fe;
+            outline: 0;
+        }
+
+        .page-link {
+            border: none;
+            color: #6c757d;
+            border-radius: 0.375rem;
+            margin: 0 3px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .page-link:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+        }
+
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+        }
+
+        .page-item.disabled .page-link {
+            background-color: transparent;
+            color: #adb5bd;
+        }
+
+        .dataTables_info {
+            font-size: 0.875rem;
+            color: #6c757d !important;
+            padding-top: 0 !important;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-pills .nav-link {
+            color: #495057;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            margin-right: 0.5rem;
+        }
+
+        .icon-box {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+        }
+    </style>
+}
+
+<div class="container-fluid" style="max-width: 1400px; padding-top: 1rem;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Reporty</h2>
+            <p class="text-muted mb-0">Analýza zásob a spotřeby</p>
         </div>
+        <ul class="nav nav-pills">
+            <li class="nav-item"><a class="nav-link @(action == "LowStock" ? "active shadow-sm" : "")" asp-controller="Reports" asp-action="LowStock"><i class="bi bi-exclamation-triangle me-1"></i> Dochází</a></li>
+            <li class="nav-item"><a class="nav-link @(action == "Consumption" ? "active shadow-sm" : "")" asp-controller="Reports" asp-action="Consumption"><i class="bi bi-graph-down me-1"></i> Spotřeba</a></li>
+        </ul>
+    </div>
 
-        <div class="btn-group" role="group" aria-label="Zdroj">
-            <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="false"
-               class="btn btn-sm @(projectsOnly ? "btn-outline-secondary" : "btn-primary")">Vše</a>
-            <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="true"
-               class="btn btn-sm @(!projectsOnly ? "btn-outline-secondary" : "btn-primary")">Jen projekty</a>
+    <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card-body bg-light rounded-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-uppercase text-muted small fw-bold">Období:</span>
+                <div class="btn-group shadow-sm" role="group">
+                    <a asp-action="Consumption" asp-route-days="7" asp-route-projectsOnly="@projectsOnly" class="btn @(days == 7 ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">7 dní</a>
+                    <a asp-action="Consumption" asp-route-days="30" asp-route-projectsOnly="@projectsOnly" class="btn @(days == 30 ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">30 dní</a>
+                    <a asp-action="Consumption" asp-route-days="90" asp-route-projectsOnly="@projectsOnly" class="btn @(days == 90 ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">90 dní</a>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-uppercase text-muted small fw-bold">Zdroj:</span>
+                <div class="btn-group shadow-sm" role="group">
+                    <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="false" class="btn @(!projectsOnly ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">Vše</a>
+                    <a asp-action="Consumption" asp-route-days="@days" asp-route-projectsOnly="true" class="btn @(projectsOnly ? "btn-white text-primary fw-bold" : "btn-light text-muted") border">Jen projekty</a>
+                </div>
+            </div>
         </div>
     </div>
+
+    @if (Model == null || Model.Count == 0)
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+            <div class="mb-3 text-muted opacity-25"><i class="bi bi-bar-chart" style="font-size: 3rem;"></i></div>
+            <h5 class="fw-bold">Žádná aktivita</h5>
+            <p class="text-muted">V tomto období nebyla zaznamenána žádná spotřeba.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="reportTable" class="table table-hover align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Položka</th>
+                                <th class="text-center">Spotřeba</th>
+                                <th class="text-center">Počet výdejů</th>
+                                <th class="text-center">Zdroj</th>
+                                <th class="text-center">Skladem</th>
+                                <th class="text-end pe-4">Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Model)
+                            {
+                                <tr style="cursor: pointer;" onclick="window.location='@Url.Action("Details", "Components", new { id = r.ComponentId })'">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-3 flex-shrink-0">
+                                                <i class="bi bi-cpu fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark">@r.Name</div>
+                                                <small class="text-muted">@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center"><span class="fs-6 fw-bold text-dark">-@r.Used ks</span></td>
+                                    <td class="text-center text-muted">@r.UsesCount x</td>
+                                    <td class="text-center">
+                                        @if (r.SourceLabel == "Mix")
+                                        {
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-2 py-1"><i class="bi bi-shuffle me-1"></i> Mix</span>
+                                        }
+                                        else if (r.SourceLabel == "Projekty")
+                                        {
+
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1"><i class="bi bi-folder me-1"></i> Projekty</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="badge bg-dark bg-opacity-10 text-dark border border-dark px-2 py-1"><i class="bi bi-hand-index-thumb me-1"></i> Ruční</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (r.Quantity < r.ReorderPoint)
+                                        {
+                                            <span class="text-warning fw-bold">@r.Quantity ks</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="text-success">@r.Quantity ks</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn btn-sm btn-light border shadow-sm rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-chevron-right text-muted"></i>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
-@if (Model == null || Model.Count == 0)
-{
-    <div class="alert alert-info mb-0">Žádná spotřeba v daném období.</div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-hover align-middle shadow-sm rounded">
-            <thead class="table-light">
-                <tr>
-                    <th>Položka</th>
-                    <th>Označení</th>
-                    <th class="text-center">Spotřeba</th>
-                    <th class="text-center">Výdejů</th>
-                    <th class="text-center">Zdroj</th>
-                    <th class="text-center">Sklad</th>
-                    <th class="text-center">Min</th>
-                    <th class="text-center">Koupit</th>                   
-                    <th class="text-end">Akce</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in Model)
-                {
-                    var rowClass = r.Quantity == 0 ? "table-danger"
-                    : r.Quantity < r.ReorderPoint ? "table-warning"
-                    : "";
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) { return new bootstrap.Tooltip(tooltipTriggerEl) });
 
-                    <tr class="@rowClass">
-                        <td class="fw-semibold">@r.Name</td>
-                        <td>@(string.IsNullOrWhiteSpace(r.ManufacturerPartNumber) ? "–" : r.ManufacturerPartNumber)</td>
-                        <td class="text-center fw-semibold">@r.Used</td>
-                        <td class="text-center text-muted">@r.UsesCount</td>
-                        <td class="text-center">
-                            @if (r.SourceLabel == "Mix")
-                            {
-                                <span class="badge bg-secondary"
-                                      data-bs-toggle="tooltip"
-                                      title="Projekty: @r.UsedFromProjects ks, Ruční: @r.UsedManual ks">
-                                    Mix
-                                </span>
-                            }
-                            else if (r.SourceLabel == "Projekty")
-                            {
-                                <span class="badge bg-primary"
-                                      data-bs-toggle="tooltip"
-                                      title="Projekty: @r.UsedFromProjects ks">
-                                    Projekty
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-dark"
-                                      data-bs-toggle="tooltip"
-                                      title="Ruční: @r.UsedManual ks">
-                                    Ruční
-                                </span>
-                            }
-                        </td>
-                        <td class="text-center">@r.Quantity</td>
-                        <td class="text-center">@r.ReorderPoint</td>
-                        <td class="text-center">
-                            @if (r.ToBuy > 0)
-                            {
-                                <span class="badge bg-secondary">@r.ToBuy</span>
-                            }
-                            else
-                            {
-
-                                <span class="text-muted">0</span>
-                            }
-                        </td>
-                        <td class="text-end">
-                            <a asp-controller="Components" asp-action="Details" asp-route-id="@r.ComponentId"
-                               class="btn btn-sm btn-outline-secondary">Náhled</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+            $('#reportTable').DataTable({
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/cs.json",
+                    searchPlaceholder: "Hledat v reportu..."
+                },
+                columnDefs: [ { orderable: false, targets: 5 } ],
+                order: [[1, 'desc']],
+                pageLength: 25,
+                stateSave: true,
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+            });
+        });
+    </script>
 }

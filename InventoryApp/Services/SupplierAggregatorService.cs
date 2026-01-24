@@ -32,7 +32,6 @@ namespace InventoryApp.Services
                 throw new InvalidOperationException($"Project {projectId} not found");
             }
 
-            // smazat staré nabídky
             var existingOffers = project.Items.SelectMany(i => i.SupplierOffers).ToList();
             if (existingOffers.Any())
             {
@@ -49,12 +48,10 @@ namespace InventoryApp.Services
                 return;
             }
 
-            // načteme existující dodavatele a připravíme mapu podle jména
             var existingSuppliers = await _context.Suppliers.ToListAsync();
             var suppliersByName = existingSuppliers
                 .ToDictionary(s => s.Name, s => s, StringComparer.OrdinalIgnoreCase);
 
-            // pro každý client zajistíme existenci Supplier záznamu
             foreach (var client in _clients)
             {
                 if (!suppliersByName.ContainsKey(client.SupplierName))
@@ -72,7 +69,6 @@ namespace InventoryApp.Services
 
             await _context.SaveChangesAsync();
 
-            // generujeme nabídky pro každého dodavatele
             foreach (var item in itemsToBuy)
             {
                 foreach (var client in _clients)
@@ -95,6 +91,39 @@ namespace InventoryApp.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<SupplierOffer>> SearchForComponentAsync(Component component)
+        {
+            var dummyItem = new ProjectItem
+            {
+                Component = component,
+                ComponentId = component.Id,
+                CustomName = component.Name,
+                QuantityToBuy = 1
+            };
+
+            var allOffers = new List<SupplierOffer>();
+
+            foreach (var client in _clients)
+            {
+                try
+                {
+                    var offers = await client.SearchAsync(dummyItem);
+
+                    foreach (var offer in offers)
+                    {
+                        offer.Supplier = new Supplier { Name = client.SupplierName };
+                        allOffers.Add(offer);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chyba při hledání u {client.SupplierName}: {ex.Message}");
+                }
+            }
+
+            return allOffers.OrderBy(o => o.UnitPrice).ToList();
         }
     }
 }
