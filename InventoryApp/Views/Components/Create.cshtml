@@ -1,4 +1,4 @@
-﻿@model InventoryApp.Models.Component
+﻿@model InventoryApp.ViewModels.ComponentViewModel
 @{
     ViewData["Title"] = "Nová součástka";
 }
@@ -98,7 +98,7 @@
                             <i class="bi bi-cloud-arrow-up fs-3 mb-2"></i>
                             <span>Klikni pro výběr souborů (Datasheet, Obrázek...)</span>
                         </div>
-                        <input id="filesInput" type="file" name="files" multiple class="d-none" />
+                        <input asp-for="Files" id="filesInput" type="file" name="files" multiple class="d-none" />
                     </label>
 
                     <div id="filesPreview" class="mt-3 d-none">

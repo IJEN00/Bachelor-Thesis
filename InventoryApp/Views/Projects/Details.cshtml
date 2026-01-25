@@ -1,28 +1,16 @@
-﻿@model InventoryApp.Models.Project
+﻿@model InventoryApp.ViewModels.ProjectDetailViewModel
 
 @{
-    ViewData["Title"] = $"Projekt: {Model.Name}";
-    bool offersSearched = TempData["OffersSearched"] as bool? ?? false;
-
-    var totalItems = Model.Items?.Count ?? 0;
-    var totalRequired = Model.Items?.Sum(i => i.QuantityRequired) ?? 0;
-    var totalFromStock = Model.Items?.Sum(i => i.QuantityFromStock) ?? 0;
-    var totalToBuy = Model.Items?.Sum(i => i.QuantityToBuy) ?? 0;
-
-    int progress = totalRequired > 0 ? (int)((double)totalFromStock / totalRequired * 100) : 0;
-    string progressColor = progress == 100 ? "bg-success" : (progress > 50 ? "bg-primary" : "bg-warning");
-
-    bool isLocked = Model.ConsumedAt != null;
+    ViewData["Title"] = $"Projekt: {Model.Project.Name}";
 }
 
 <div class="container-fluid" style="max-width: 1400px;">
 
-    @* --- HLAVIČKA A AKCE --- *@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <div class="d-flex align-items-center gap-3">
-                <h2 class="fw-bold mb-0">@Model.Name</h2>
-                @if (isLocked)
+                <h2 class="fw-bold mb-0">@Model.Project.Name</h2>
+                @if (Model.IsLocked)
                 {
                     <span class="badge bg-success rounded-pill px-3"><i class="bi bi-check-circle-fill me-1"></i> Hotovo / Uzamčeno</span>
                 }
@@ -31,17 +19,17 @@
                     <span class="badge bg-primary rounded-pill px-3"><i class="bi bi-tools me-1"></i> Ve vývoji</span>
                 }
             </div>
-            <p class="text-muted mt-1 mb-0">@Model.Description</p>
+            <p class="text-muted mt-1 mb-0">@Model.Project.Description</p>
         </div>
 
         <div class="d-flex gap-2">
             <a asp-action="Index" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Zpět
             </a>
-            @if (!isLocked)
+            @if (!Model.IsLocked)
             {
                 <form asp-action="ConsumeFromStock" method="post" onsubmit="return confirm('Opravdu odečíst položky ze skladu? Projekt se uzamkne.');">
-                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="id" value="@Model.Project.Id" />
                     <button type="submit" class="btn btn-success">
                         <i class="bi bi-box-seam me-1"></i> Odečíst ze skladu & Uzamknout
                     </button>
@@ -50,18 +38,17 @@
         </div>
     </div>
 
-    @* --- DASHBOARD KARTY --- *@
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small fw-bold">Stav kompletace</h6>
                     <div class="d-flex align-items-baseline gap-2">
-                        <h3 class="mb-0">@progress%</h3>
+                        <h3 class="mb-0">@Model.Progress%</h3>
                         <span class="text-muted small">hotovo</span>
                     </div>
                     <div class="progress mt-2" style="height: 6px;">
-                        <div class="progress-bar @progressColor" role="progressbar" style="width: @progress%"></div>
+                        <div class="progress-bar @Model.ProgressColor" role="progressbar" style="width: @Model.Progress%"></div>
                     </div>
                 </div>
             </div>
@@ -73,7 +60,7 @@
                     <h6 class="text-muted text-uppercase small fw-bold">Položky</h6>
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h3 class="mb-0">@totalItems</h3>
+                            <h3 class="mb-0">@Model.TotalItems</h3>
                             <small class="text-muted">unikátních dílů</small>
                         </div>
                         <div class="icon-shape bg-light text-primary rounded-circle p-3">
@@ -85,12 +72,12 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card h-100 border-0 shadow-sm @(totalToBuy > 0 ? "border-start border-4 border-warning" : "border-start border-4 border-success")">
+            <div class="card h-100 border-0 shadow-sm @(Model.TotalToBuy > 0 ? "border-start border-4 border-warning" : "border-start border-4 border-success")">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small fw-bold">Chybí k nákupu</h6>
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h3 class="mb-0 @(totalToBuy > 0 ? "text-warning" : "text-success")">@totalToBuy <span class="fs-6 text-muted">ks</span></h3>
+                            <h3 class="mb-0 @(Model.TotalToBuy > 0 ? "text-warning" : "text-success")">@Model.TotalToBuy <span class="fs-6 text-muted">ks</span></h3>
                             <small class="text-muted">nutno objednat</small>
                         </div>
                         <div class="icon-shape bg-light text-warning rounded-circle p-3">
@@ -105,8 +92,8 @@
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small fw-bold">Vytvořeno</h6>
-                    <h4 class="mb-0 fs-5">@Model.CreatedAt.ToLocalTime().ToString("d. M. yyyy")</h4>
-                    <small class="text-muted">@Model.CreatedAt.ToLocalTime().ToString("HH:mm")</small>
+                    <h4 class="mb-0 fs-5">@Model.Project.CreatedAt.ToLocalTime().ToString("d. M. yyyy")</h4>
+                    <small class="text-muted">@Model.Project.CreatedAt.ToLocalTime().ToString("HH:mm")</small>
                 </div>
             </div>
         </div>
@@ -119,7 +106,6 @@
         </div>
     }
 
-    @* --- HLAVNÍ OBSAH (TABS) --- *@
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white border-bottom-0 pt-3 px-4">
             <ul class="nav nav-tabs card-header-tabs" id="projectTabs" role="tablist">
@@ -131,9 +117,9 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link fw-bold position-relative" id="buy-tab" data-bs-toggle="tab" data-bs-target="#buy" type="button" role="tab">
                         <i class="bi bi-currency-dollar me-1"></i> Nákup a Ceny
-                        @if (totalToBuy > 0)
+                        @if (Model.TotalToBuy > 0)
                         {
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6em">@totalToBuy</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6em">@Model.TotalToBuy</span>
                         }
                     </button>
                 </li>
@@ -148,7 +134,6 @@
         <div class="card-body p-0">
             <div class="tab-content" id="projectTabsContent">
 
-                @* --- TAB 1: KUSOVNÍK --- *@
                 <div class="tab-pane fade show active" id="bom" role="tabpanel">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
@@ -162,14 +147,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if (Model.Items != null && Model.Items.Any())
+                                @if (Model.Project.Items != null && Model.Project.Items.Any())
                                 {
-                                    foreach (var item in Model.Items.OrderBy(i => i.Id))
+                                    foreach (var item in Model.Project.Items.OrderBy(i => i.Id))
                                     {
                                         string name = item.Component?.Name ?? item.CustomName ?? "Unknown";
                                         string manu = item.Component?.Manufacturer ?? "-";
                                         string mpn = item.Component?.ManufacturerPartNumber ?? "-";
-
                                         <tr>
                                             <td class="ps-4">
                                                 <div class="fw-bold text-dark">@name</div>
@@ -201,11 +185,11 @@
                                                 }
                                             </td>
                                             <td class="text-end pe-4">
-                                                @if (!isLocked)
+                                                @if (!Model.IsLocked)
                                                 {
                                                     <form asp-action="DeleteItem" method="post" class="d-inline">
                                                         <input type="hidden" name="id" value="@item.Id" />
-                                                        <input type="hidden" name="projectId" value="@Model.Id" />
+                                                        <input type="hidden" name="projectId" value="@Model.Project.Id" />
                                                         <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Odstranit">
                                                             <i class="bi bi-x-circle fs-5"></i>
                                                         </button>
@@ -223,24 +207,26 @@
                         </table>
                     </div>
 
-                    @* Sekce Přidat Položku *@
-                    @if (!isLocked)
+                    @if (!Model.IsLocked)
                     {
                         <div class="bg-light p-4 border-top">
                             <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle-dotted me-2"></i>Přidat součástku</h6>
+
                             <form asp-action="AddItem" method="post" class="row g-3 align-items-end">
-                                <input type="hidden" name="projectId" value="@Model.Id" />
+                                <input type="hidden" name="projectId" value="@Model.Project.Id" />
+
                                 <div class="col-md-5">
                                     <label class="form-label small text-muted">Vybrat ze skladu</label>
-                                    <select id="componentSelect" name="componentId" class="form-select" asp-items="@(ViewData["ComponentId"] as IEnumerable<SelectListItem>)"></select>
+                                    <select asp-for="SelectedComponentId" asp-items="Model.AvailableComponents" id="componentSelect" class="form-select">
+                                    </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted">Nebo pomocí MPN mimo sklad</label>
-                                    <input type="text" name="customName" class="form-control" placeholder="Např. 082-515..." />
+                                    <input asp-for="CustomName" class="form-control" placeholder="Např. 082-515..." />
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small text-muted">Počet</label>
-                                    <input type="number" name="quantityRequired" class="form-control" value="1" min="1" />
+                                    <input asp-for="QuantityRequired" class="form-control" min="1" />
                                 </div>
                                 <div class="col-md-1">
                                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button>
@@ -250,23 +236,21 @@
                     }
                 </div>
 
-                @* --- TAB 2: NÁKUP --- *@
                 <div class="tab-pane fade" id="buy" role="tabpanel">
                     <div class="p-4">
 
-                        @* Ovládací tlačítka *@
-                        @if (!isLocked && Model.Items != null && Model.Items.Any(i => i.QuantityToBuy > 0))
+                        @if (!Model.IsLocked && Model.TotalToBuy > 0)
                         {
                             <div class="d-flex gap-2 mb-4">
                                 <form asp-action="FindOffers" method="post">
-                                    <input type="hidden" name="projectId" value="@Model.Id" />
+                                    <input type="hidden" name="projectId" value="@Model.Project.Id" />
                                     <button type="submit" class="btn btn-primary">
                                         <i class="bi bi-cloud-download me-1"></i> 1. Načíst ceny online
                                     </button>
                                 </form>
 
                                 <form asp-action="AutoSelectCheapest" method="post">
-                                    <input type="hidden" name="projectId" value="@Model.Id" />
+                                    <input type="hidden" name="projectId" value="@Model.Project.Id" />
                                     <button type="submit" class="btn btn-outline-dark">
                                         <i class="bi bi-magic me-1"></i> 2. Vybrat nejlevnější
                                     </button>
@@ -275,7 +259,7 @@
                         }
 
                         @{
-                            bool anyOffers = Model.Items?.Any(i => i.SupplierOffers != null && i.SupplierOffers.Any()) ?? false;
+                            bool anyOffers = Model.Project.Items?.Any(i => i.SupplierOffers != null && i.SupplierOffers.Any()) ?? false;
                         }
 
                         @if (anyOffers)
@@ -289,7 +273,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach (var item in Model.Items.Where(i => i.QuantityToBuy > 0))
+                                        @foreach (var item in Model.Project.Items.Where(i => i.QuantityToBuy > 0))
                                         {
                                             string name = item.Component?.Name ?? item.CustomName ?? "Unknown";
                                             <tr class="align-top">
@@ -333,11 +317,11 @@
                                                                         {
                                                                             <span class="badge bg-success"><i class="bi bi-check2"></i> Vybráno</span>
                                                                         }
-                                                                        else if (!isLocked)
+                                                                        else if (!Model.IsLocked)
                                                                         {
                                                                             <form asp-action="SelectOffer" method="post">
                                                                                 <input type="hidden" name="offerId" value="@offer.Id" />
-                                                                                <input type="hidden" name="projectId" value="@Model.Id" />
+                                                                                <input type="hidden" name="projectId" value="@Model.Project.Id" />
                                                                                 <button class="btn btn-sm btn-outline-secondary py-0">Vybrat</button>
                                                                             </form>
                                                                         }
@@ -367,17 +351,15 @@
                     </div>
                 </div>
 
-                @* --- TAB 3: OBJEDNÁVKA --- *@
                 <div class="tab-pane fade" id="order" role="tabpanel">
                     @{
-                        var selectedOffers = Model.Items?
+                        var selectedOffers = Model.Project.Items?
                         .Where(i => i.SupplierOffers != null && i.SupplierOffers.Any(o => o.IsSelected))
                         .SelectMany(i => i.SupplierOffers
                         .Where(o => o.IsSelected)
                         .Select(o => new { Item = i, Offer = o }))
                         .GroupBy(x => x.Offer.Supplier?.Name ?? "Unknown")
                         .ToList();
-
                         decimal grandTotal = 0;
                     }
 
@@ -419,7 +401,7 @@
                                     <h4 class="mb-0">Celkem: @grandTotal.ToString("N2") Kč</h4>
                                     <small class="text-muted">* orientační cena bez dopravy</small>
                                 </div>
-                                <a asp-action="ExportOrderCsv" asp-route-projectId="@Model.Id" class="btn btn-dark btn-lg">
+                                <a asp-action="ExportOrderCsv" asp-route-projectId="@Model.Project.Id" class="btn btn-dark btn-lg">
                                     <i class="bi bi-file-earmark-spreadsheet me-2"></i> Stáhnout CSV
                                 </a>
                             </div>
@@ -444,7 +426,7 @@
         .select2-container--bootstrap-5 .select2-selection {
             border: 1px solid #dee2e6;
             border-radius: 0.375rem;
-            min-height: 38px; 
+            min-height: 38px;
             padding-top: 4px;
         }
 
@@ -472,7 +454,7 @@
     <script>
         $(function () {
             $('#componentSelect').select2({
-                theme: 'bootstrap-5', 
+                theme: 'bootstrap-5',
                 width: '100%',
                 placeholder: 'Vyber součástku ze skladu...',
                 allowClear: true

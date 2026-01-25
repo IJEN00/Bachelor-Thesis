@@ -1,8 +1,10 @@
 ﻿using InventoryApp.Models;
 using InventoryApp.Services;
+using InventoryApp.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
 
 namespace InventoryApp.Controllers
 {
@@ -12,16 +14,14 @@ namespace InventoryApp.Controllers
         private readonly ILocationService _locationSvc;
         private readonly IDocumentService _docSvc;
         private readonly IWebHostEnvironment _env;
-        private readonly AppDbContext _context;
         private readonly SupplierAggregatorService _aggregator;
 
-        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env, AppDbContext context, SupplierAggregatorService aggregator)
+        public ComponentsController(IComponentService svc, ILocationService locationSvc, IDocumentService doc, IWebHostEnvironment env, SupplierAggregatorService aggregator)
         {
             _svc = svc;
             _locationSvc = locationSvc;
             _env = env;
             _docSvc = doc;
-            _context = context;
             _aggregator = aggregator;
         }
 
@@ -35,19 +35,7 @@ namespace InventoryApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Filter(string? rack, string? drawer, string? box, string? search)
         {
-            var list = await _svc.GetAllAsync();
-
-            if (!string.IsNullOrEmpty(rack))
-                list = (list.Where(c => c.Location != null && c.Location.Rack == rack)).ToList();
-
-            if (!string.IsNullOrEmpty(drawer))
-                list = (list.Where(c => c.Location != null && c.Location.Drawer == drawer)).ToList();
-
-            if (!string.IsNullOrEmpty(box))
-                list = (list.Where(c => c.Location != null && c.Location.Box == box)).ToList();
-
-            if (!string.IsNullOrEmpty(search))
-                list = (list.Where(c => c.Name.Contains(search, StringComparison.OrdinalIgnoreCase))).ToList();
+            var list = await _svc.FilterComponentsAsync(rack, drawer, box, search);
 
             return PartialView("_ComponentListPartial", list);
         }
@@ -56,107 +44,102 @@ namespace InventoryApp.Controllers
         public async Task<IActionResult> Create()
         {
             var locations = await _locationSvc.GetAllAsync();
-            ViewBag.LocationId = new SelectList(locations, "Id", "DisplayName");
-            return View(new Component());
+
+            var vm = new ComponentViewModel
+            {
+                LocationOptions = new SelectList(locations, "Id", "DisplayName"),
+                ReorderPoint = 5 
+            };
+
+            return View(vm);
         }
 
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Component c, List<IFormFile> files)
+        public async Task<IActionResult> Create(ComponentViewModel vm)
         {
             if (!ModelState.IsValid)
             {
                 var locations = await _locationSvc.GetAllAsync();
-                ViewBag.LocationId = new SelectList(locations, "Id", "DisplayName");
-                return View(c);
+                vm.LocationOptions = new SelectList(locations, "Id", "DisplayName", vm.LocationId);
+                return View(vm);
             }
 
-            await _svc.AddAsync(c);
-
-            if (files != null && files.Count > 0)
+            var component = new Models.Component
             {
-                var uploadsPath = Path.Combine(_env.WebRootPath, "uploads");
-                Directory.CreateDirectory(uploadsPath);
+                Name = vm.Name,
+                Manufacturer = vm.Manufacturer,
+                ManufacturerPartNumber = vm.ManufacturerPartNumber,
+                Package = vm.Package, 
+                Quantity = vm.Quantity,
+                ReorderPoint = vm.ReorderPoint,
+                LocationId = vm.LocationId
+            };
 
-                foreach (var file in files)
-                {
-                    var fileName = Path.GetFileName(file.FileName);
-                    var filePath = Path.Combine("uploads", $"{Guid.NewGuid()}_{fileName}");
-                    using (var stream = new FileStream(Path.Combine(_env.WebRootPath, filePath), FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+            await _svc.AddAsync(component);
 
-                    var doc = new Document
-                    {
-                        ComponentId = c.Id,
-                        FilePath = filePath,
-                        FileName = fileName,
-                        UploadedAt = DateTime.UtcNow
-                    };
-                    await _docSvc.AddAsync(doc);
-                }
-            }
+            await _docSvc.UploadFilesAsync(vm.Files, component.Id, _env.WebRootPath);
 
-            TempData["ToastSuccess"] = $"Součástka „{c.Name}“ byla vytvořena.";
+            TempData["ToastSuccess"] = $"Součástka „{component.Name}“ byla vytvořena.";
 
             return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var model = await _svc.GetByIdAsync(id);
-            if (model == null) return NotFound();
+            var component = await _svc.GetByIdAsync(id);
+            if (component == null) return NotFound();
 
             var locations = await _locationSvc.GetAllAsync();
-            ViewBag.LocationId = new SelectList(locations, "Id", "DisplayName", model.LocationId);
-            return View(model);
+
+            var vm = new ComponentViewModel
+            {
+                Id = component.Id,
+                Name = component.Name,
+                Manufacturer = component.Manufacturer,
+                ManufacturerPartNumber = component.ManufacturerPartNumber,
+                Package = component.Package, 
+                Quantity = component.Quantity,
+                ReorderPoint = component.ReorderPoint,
+                LocationId = component.LocationId,
+                ExistingDocuments = component.Documents ?? new List<Document>(),
+                LocationOptions = new SelectList(locations, "Id", "DisplayName", component.LocationId)
+            };
+
+            return View(vm);
         }
 
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Component c, List<IFormFile> files)
+        public async Task<IActionResult> Edit(int id, ComponentViewModel vm)
         {
-            if (id != c.Id) return BadRequest();
+            if (id != vm.Id) return BadRequest();
 
             if (!ModelState.IsValid)
             {
                 var locations = await _locationSvc.GetAllAsync();
-                ViewBag.LocationId = new SelectList(locations, "Id", "DisplayName", c.LocationId);
-                return View(c);
+                vm.LocationOptions = new SelectList(locations, "Id", "DisplayName", vm.LocationId);
+
+                var original = await _svc.GetByIdAsync(id);
+                vm.ExistingDocuments = original?.Documents ?? new List<Document>();
+                return View(vm);
             }
 
-            await _svc.UpdateAsync(c);
+            var componentToUpdate = await _svc.GetByIdAsync(id);
+            if (componentToUpdate == null) return NotFound();
 
-            if (files != null && files.Count > 0)
-            {
-                var uploadsPath = Path.Combine(_env.WebRootPath, "uploads");
-                Directory.CreateDirectory(uploadsPath);
+            componentToUpdate.Name = vm.Name;
+            componentToUpdate.Manufacturer = vm.Manufacturer;
+            componentToUpdate.ManufacturerPartNumber = vm.ManufacturerPartNumber;
+            componentToUpdate.Package = vm.Package; 
+            componentToUpdate.ReorderPoint = vm.ReorderPoint;
+            componentToUpdate.LocationId = vm.LocationId;
 
-                foreach (var file in files)
-                {
-                    if (file.Length <= 0) continue;
+            await _svc.UpdateAsync(componentToUpdate);
 
-                    var fileName = Path.GetFileName(file.FileName);
-                    var filePath = Path.Combine("uploads", $"{Guid.NewGuid()}_{fileName}");
-
-                    using (var stream = new FileStream(Path.Combine(_env.WebRootPath, filePath), FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
-
-                    var doc = new Document
-                    {
-                        ComponentId = c.Id,
-                        FilePath = filePath,
-                        FileName = fileName,
-                        UploadedAt = DateTime.UtcNow
-                    };
-                    await _docSvc.AddAsync(doc);
-                }
-            }
+            await _docSvc.UploadFilesAsync(vm.Files, componentToUpdate.Id, _env.WebRootPath);
 
             return RedirectToAction(nameof(Index));
         }
@@ -164,20 +147,26 @@ namespace InventoryApp.Controllers
 
         public async Task<IActionResult> Details(int id)
         {
-            var model = await _svc.GetByIdAsync(id);
-            if (model == null) return NotFound();
-            model.Documents = (await _docSvc.GetByIdAsync(id)).ToList();
-            model.Location = await _locationSvc.GetByIdAsync(model.LocationId ?? 0);
+            var component = await _svc.GetByIdAsync(id);
+            if (component == null) return NotFound();
 
-            var tx = await _context.InventoryTransactions
-                .Where(t => t.ComponentId == id)
-                .OrderByDescending(t => t.CreatedAt)
-                .Take(10)
-                .ToListAsync();
+            var history = await _svc.GetTransactionHistoryAsync(id);
 
-            ViewBag.RecentTransactions = tx;
+            var vm = new ComponentDetailViewModel
+            {
+                Id = component.Id,
+                Name = component.Name,
+                Manufacturer = component.Manufacturer,
+                ManufacturerPartNumber = component.ManufacturerPartNumber,
+                Package = component.Package,
+                Quantity = component.Quantity,
+                ReorderPoint = component.ReorderPoint ?? 5,
+                Location = component.Location,
+                Documents = component.Documents.ToList(),
+                History = history 
+            };
 
-            return View(model);
+            return View(vm);
         }
 
 
@@ -207,26 +196,20 @@ namespace InventoryApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddStock(int id, int amount, string? note)
         {
-            if (amount <= 0)
+            try
             {
-                TempData["ToastError"] = "Množství musí být větší než 0.";
-                return RedirectToAction(nameof(Details), new { id });
+                await _svc.AddStockAsync(id, amount, note);
+                TempData["ToastSuccess"] = "Součástka byla úspěšně naskladněna.";
+            }
+            catch (ArgumentException ex)
+            {
+                TempData["ToastError"] = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastError"] = $"Chyba při naskladnění: {ex.Message}";
             }
 
-            var component = await _context.Components.FirstOrDefaultAsync(c => c.Id == id);
-            if (component == null) return NotFound();
-
-            component.Quantity = (byte)Math.Min(component.Quantity + amount, byte.MaxValue);
-
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ComponentId = id,
-                DeltaQuantity = amount,
-                Type = InventoryTransactionType.Add,
-                Note = string.IsNullOrWhiteSpace(note) ? null : note
-            });
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -234,32 +217,24 @@ namespace InventoryApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UseStock(int id, int amount, string? note)
         {
-            if (amount <= 0)
+            try
             {
-                TempData["ToastError"] = "Množství musí být větší než 0.";
-                return RedirectToAction(nameof(Details), new { id });
+                await _svc.UseStockAsync(id, amount, note);
+                TempData["ToastSuccess"] = "Součástka byla úspěšně vyskladněna.";
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["ToastError"] = ex.Message;
+            }
+            catch (ArgumentException ex)
+            {
+                TempData["ToastError"] = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastError"] = $"Chyba při vyskladnění: {ex.Message}";
             }
 
-            var component = await _context.Components.FirstOrDefaultAsync(c => c.Id == id);
-            if (component == null) return NotFound();
-
-            if (amount > component.Quantity)
-            {
-                TempData["ToastError"] = $"Nelze odebrat {amount} ks. Na skladě je jen {component.Quantity} ks.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            component.Quantity = (byte)(component.Quantity - amount);
-
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ComponentId = id,
-                DeltaQuantity = -amount,
-                Type = InventoryTransactionType.Use,
-                Note = string.IsNullOrWhiteSpace(note) ? null : note
-            });
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Details), new { id });
         }
 

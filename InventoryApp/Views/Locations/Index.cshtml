@@ -1,6 +1,6 @@
 ﻿@model IEnumerable<InventoryApp.Models.Location>
 @{
-    ViewData["Title"] = "Skladová místa";
+    ViewData["Title"] = "Sklad";
 }
 
 @section Styles {
@@ -147,8 +147,7 @@
                     <tbody class="border-top-0">
                         @foreach (var item in Model)
                         {
-                            // Klikací řádek
-                            <tr data-href="@Url.Action("Edit", new { id = item.Id })" style="cursor: pointer;">
+                            <tr>
 
                                 <td class="ps-4 py-3">
                                     <div class="d-flex align-items-center">

@@ -1,4 +1,4 @@
-﻿@model InventoryApp.Models.Component
+﻿@model InventoryApp.ViewModels.ComponentViewModel
 @{
     ViewData["Title"] = "Upravit součástku";
 }
@@ -129,14 +129,14 @@
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                         <h5 class="fw-bold mb-0"><i class="bi bi-paperclip me-2 text-info"></i>Přílohy</h5>
-                        <span class="badge bg-light text-dark border">@(Model.Documents?.Count ?? 0)</span>
+                        <span class="badge bg-light text-dark border">@(Model.ExistingDocuments?.Count ?? 0)</span>
                     </div>
                     <div class="card-body p-4">
 
                         <div class="mb-3">
                             <label class="btn btn-outline-secondary w-100 border-dashed" style="border-style: dashed;">
                                 <i class="bi bi-cloud-upload me-2"></i> Vybrat soubory...
-                                <input id="filesInput" type="file" name="files" multiple class="d-none" />
+                                <input asp-for="Files" id="filesInput" type="file" name="files" multiple class="d-none" />
                             </label>
                         </div>
 
@@ -148,13 +148,13 @@
                             <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="filesList"></ul>
                         </div>
 
-                        @if (Model.Documents != null && Model.Documents.Any())
+                        @if (Model.ExistingDocuments != null && Model.ExistingDocuments.Any())
                         {
                             <div class="mb-2">
                                 <small class="text-muted text-uppercase fw-bold">Uloženo</small>
                             </div>
                             <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="documentsList">
-                                @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedAt))
+                                @foreach (var doc in Model.ExistingDocuments.OrderByDescending(d => d.UploadedAt))
                                 {
                                     <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2" id="doc-@doc.Id">
                                         <div class="d-flex align-items-center overflow-hidden">

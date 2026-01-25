@@ -22,6 +22,8 @@ namespace InventoryApp
             builder.Services.AddScoped<IComponentService, ComponentService>();
             builder.Services.AddScoped<ILocationService, LocationService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
+            builder.Services.AddScoped<IProjectService, ProjectService>();
+            builder.Services.AddScoped<IReportService, ReportService>();
 
             builder.Services.AddScoped<IProjectPlanningService, ProjectPlanningService>();
 

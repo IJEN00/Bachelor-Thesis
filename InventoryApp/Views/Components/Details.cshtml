@@ -1,18 +1,6 @@
-﻿@model InventoryApp.Models.Component
+﻿@model InventoryApp.ViewModels.ComponentDetailViewModel
 @{
     ViewData["Title"] = $"Detail: {Model.Name}";
-
-    // --- Logika stavu skladu ---
-    int reorderPoint = Model.ReorderPoint ?? 5;
-    int quantity = Model.Quantity;
-    int toBuy = Math.Max(reorderPoint - quantity, 0);
-
-    string statusColor = quantity == 0 ? "danger" : (quantity < reorderPoint ? "warning" : "success");
-    string statusText = quantity == 0 ? "Vyprodáno" : (quantity < reorderPoint ? "Dochází" : "Skladem");
-    string statusIcon = quantity == 0 ? "bi-x-circle" : (quantity < reorderPoint ? "bi-exclamation-circle" : "bi-check-circle");
-    string badgeClass = $"bg-{statusColor} bg-opacity-10 text-{statusColor} border border-{statusColor}";
-
-    var tx = ViewBag.RecentTransactions as List<InventoryApp.Models.InventoryTransaction> ?? new();
 }
 
 @section Styles {
@@ -62,6 +50,63 @@
         .dataTables_info {
             display: none !important;
         }
+
+        @@media print {
+            @@page {
+                margin: 0;
+                size: auto;
+            }
+
+            html, body {
+                height: 100vh; 
+                width: 100vw;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important; 
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            #qrModal, #qrModal * {
+                visibility: visible;
+            }
+
+            #qrModal {
+                position: fixed; 
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+                
+                display: flex !important;
+                align-items: center;    
+                justify-content: center; 
+                
+                background-color: white !important;
+                border: none !important;
+            }
+
+            .modal-dialog {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: auto !important;
+                max-width: none !important;
+                box-shadow: none !important;
+            }
+            
+            .modal-content {
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            #qrModal button {
+                display: none !important;
+            }
+        }
     </style>
 }
 
@@ -76,6 +121,9 @@
             <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">
                 <i class="bi bi-arrow-left"></i> Zpět
             </a>
+            <button type="button" class="btn btn-outline-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#qrModal" title="Zobrazit QR štítek">
+                <i class="bi bi-qr-code"></i>
+            </button>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary shadow-sm">
                 <i class="bi bi-pencil me-1"></i> Upravit
             </a>
@@ -112,14 +160,14 @@
                 <div class="text-end border-start ps-4 d-none d-md-block">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Stav skladu</div>
                     <div class="d-flex align-items-center justify-content-end gap-2">
-                        <h2 class="fw-bold mb-0 @(quantity == 0 ? "text-danger" : "")">@quantity <span class="fs-5 text-muted fw-normal">ks</span></h2>
+                        <h2 class="fw-bold mb-0 @(Model.Quantity == 0 ? "text-danger" : "")">@Model.Quantity <span class="fs-5 text-muted fw-normal">ks</span></h2>
                     </div>
                     <div class="mt-2">
-                        <span class="badge rounded-pill @badgeClass px-3 py-2">
-                            <i class="bi @statusIcon me-1"></i> @statusText
-                            @if (quantity < reorderPoint)
+                        <span class="badge rounded-pill bg-@Model.StatusColor bg-opacity-10 text-@Model.StatusColor border border-@Model.StatusColor px-3 py-2">
+                            <i class="bi @Model.StatusIcon me-1"></i> @Model.StatusText
+                            @if (Model.Quantity < Model.ReorderPoint)
                             {
-                                <span>(chybí @toBuy ks)</span>
+                                <span>(chybí @Model.ToBuy ks)</span>
                             }
                         </span>
                     </div>
@@ -129,7 +177,7 @@
             <div class="d-md-none mt-3 pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="fw-bold">Stav skladu:</span>
-                    <span class="badge rounded-pill @badgeClass">@quantity ks (@statusText)</span>
+                    <span class="badge rounded-pill bg-@Model.StatusColor bg-opacity-10 text-@Model.StatusColor border border-@Model.StatusColor">@Model.Quantity ks (@Model.StatusText)</span>
                 </div>
             </div>
         </div>
@@ -173,7 +221,7 @@
                     <div class="tab-content" id="detailTabsContent">
 
                         <div class="tab-pane fade show active" id="history" role="tabpanel">
-                            @if (tx.Any())
+                            @if (Model.History.Any())
                             {
                                 <div class="table-responsive">
                                     <table id="historyTable" class="table table-hover align-middle mb-0" style="width:100%">
@@ -186,7 +234,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var t in tx)
+                                            @foreach (var t in Model.History)
                                             {
                                                 var isPlus = t.DeltaQuantity > 0;
                                                 var color = isPlus ? "text-success" : "text-danger";
@@ -350,9 +398,30 @@
     </div>
 </div>
 
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-body text-center p-4">
+                <h5 class="fw-bold mb-3">@Model.Name</h5>
+                
+                <div id="qrcode" class="d-flex justify-content-center mb-3"></div>
+                
+                <div class="text-muted small mb-3">ID: @Model.Id | @Model.ManufacturerPartNumber</div>
+                
+                <button type="button" class="btn btn-light w-100 rounded-pill" data-bs-dismiss="modal">Zavřít</button>
+                <button type="button" class="btn btn-primary w-100 rounded-pill mt-2" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Tisk štítku
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -402,5 +471,23 @@
                 btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Aktualizovat';
             }
         }
+
+        const qrModal = document.getElementById('qrModal');
+        qrModal.addEventListener('shown.bs.modal', function () {
+            const container = document.getElementById("qrcode");
+            
+            container.innerHTML = "";
+            
+            const currentUrl = window.location.href;
+
+            new QRCode(container, {
+                text: currentUrl,
+                width: 150,
+                height: 150,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        });
     </script>
 }

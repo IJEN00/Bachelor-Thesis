@@ -28,6 +28,13 @@ namespace InventoryApp.Services
 
         public async Task DeleteAsync(int id)
         {
+            bool isUsed = await _db.Components.AnyAsync(c => c.LocationId == id);
+
+            if (isUsed)
+            {
+                throw new InvalidOperationException("Toto místo nelze smazat, protože obsahuje součástky.");
+            }
+
             var entity = await _db.Locations.FindAsync(id);
             if (entity != null)
             {

@@ -39,5 +39,43 @@ namespace InventoryApp.Services
                 await _db.SaveChangesAsync();
             }
         }
+
+        public async Task UploadFilesAsync(List<IFormFile> files, int componentId, string webRootPath)
+        {
+            if (files == null || files.Count == 0) return;
+
+            var uploadsPath = Path.Combine(webRootPath, "uploads");
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            foreach (var file in files)
+            {
+                if (file.Length <= 0) continue;
+
+                var fileName = Path.GetFileName(file.FileName);
+                var uniqueName = $"{Guid.NewGuid()}_{fileName}";
+                var relativePath = Path.Combine("uploads", uniqueName);
+                var fullPath = Path.Combine(webRootPath, relativePath);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                var doc = new Document
+                {
+                    ComponentId = componentId,
+                    FilePath = relativePath, 
+                    FileName = fileName,
+                    UploadedAt = DateTime.UtcNow
+                };
+
+                _db.Documents.Add(doc);
+            }
+
+            await _db.SaveChangesAsync();
+        }
     }
 }
