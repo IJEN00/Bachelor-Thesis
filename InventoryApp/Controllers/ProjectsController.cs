@@ -85,7 +85,7 @@ namespace InventoryApp.Controllers
         // POST: Projects/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,CreatedAt")] Project project)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,CreatedAt,Status,EstimatedHours,RealHours,OrderedAt,ReceivedAt")] Project project)
         {
             if (id != project.Id) return NotFound();
 
@@ -94,7 +94,7 @@ namespace InventoryApp.Controllers
                 try
                 {
                     await _svc.UpdateAsync(project);
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToAction(nameof(Details), new { id = project.Id }); 
                 }
                 catch (KeyNotFoundException)
                 {
@@ -139,11 +139,11 @@ namespace InventoryApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddItem(int projectId, int? selectedComponentId, string? customName, int quantityRequired)
+        public async Task<IActionResult> AddItem(int projectId, int? selectedComponentId, string? customName, int quantityRequired, ProjectItemType type)
         {
             try
             {
-                await _svc.AddItemAsync(projectId, selectedComponentId, customName, quantityRequired);
+                await _svc.AddItemAsync(projectId, selectedComponentId, customName, quantityRequired, type);
             }
             catch (ArgumentException ex)
             {
@@ -226,6 +226,58 @@ namespace InventoryApp.Controllers
                 TempData["ToastError"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = projectId });
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadFiles(int id, List<IFormFile> files)
+        {
+            try
+            {
+                foreach (var file in files)
+                {
+                    await _svc.UploadFileAsync(id, file);
+                }
+                TempData["ToastSuccess"] = "Soubory nahrány.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ToastError"] = "Chyba nahrávání: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteFile(int fileId, int projectId)
+        {
+            await _svc.DeleteFileAsync(fileId);
+            TempData["ToastSuccess"] = "Soubor smazán.";
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleFulfillment(int itemId, int projectId)
+        {
+            await _svc.ToggleItemFulfillmentAsync(itemId);
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Duplicate(int id)
+        {
+            var newId = await _svc.DuplicateProjectAsync(id);
+
+            if (newId > 0)
+            {
+                TempData["ToastSuccess"] = "Projekt byl úspěšně zkopírován.";
+                return RedirectToAction(nameof(Edit), new { id = newId });
+            }
+
+            TempData["ToastError"] = "Kopírování se nezdařilo.";
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

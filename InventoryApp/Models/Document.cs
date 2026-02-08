@@ -4,19 +4,15 @@ namespace InventoryApp.Models
 {
     public class Document
     {
-        [Key]
         public int Id { get; set; }
+        public string FileName { get; set; } = "";
+        public string FilePath { get; set; } = "";
+        public DateTime UploadedAt { get; set; }
 
-        [Required]
-        public int ComponentId { get; set; }
-        public Component Component { get; set; } = null!;
+        public int? ComponentId { get; set; }
+        public Component? Component { get; set; }
 
-        [Required, StringLength(500)]
-        public string FilePath { get; set; } = null!;
-
-        [StringLength(200)]
-        public string? FileName { get; set; }
-
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<InventoryApp.Models.Project>
+@using InventoryApp.Models
 
 @{
     ViewData["Title"] = "Projekty";
@@ -151,9 +152,48 @@
                                 </td>
 
                                 <td>
-                                    <span class="badge rounded-pill bg-@statusClass bg-opacity-10 text-@statusClass border border-@statusClass px-3 py-2">
-                                        <i class="bi @statusIcon me-1"></i> @statusText
-                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @switch (item.Status)
+                                        {
+                                            case ProjectStatus.Planning:
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary rounded-pill px-3 py-2">
+                                                    <i class="bi bi-lightbulb me-1"></i> Plánování
+                                                </span>
+                                                break;
+                                            case ProjectStatus.Ordered:
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill px-3 py-2">
+                                                    <i class="bi bi-cart me-1"></i> Objednáno
+                                                </span>
+                                                break;
+                                            case ProjectStatus.ReadyToBuild:
+                                                <span class="badge bg-info bg-opacity-10 text-info border border-info rounded-pill px-3 py-2">
+                                                    <i class="bi bi-box-seam me-1"></i> Připraveno
+                                                </span>
+                                                break;
+                                            case ProjectStatus.InProduction:
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill px-3 py-2">
+                                                    <i class="bi bi-tools me-1"></i> Ve výrobě
+                                                </span>
+                                                break;
+                                            case ProjectStatus.Completed:
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3 py-2">
+                                                    <i class="bi bi-check-circle me-1"></i> Hotovo
+                                                </span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-light text-dark border rounded-pill px-3 py-2">
+                                                    @item.Status
+                                                </span>
+                                                break;
+                                        }
+
+                                        @if (item.ConsumedAt != null)
+                                        {
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3 py-2" title="Uzamčeno / Vyskladněno">
+                                                <i class="bi bi-lock-fill me-1"></i> Uzamčeno
+                                            </span>
+                                        }
+                                    </div>
                                 </td>
 
                                 <td data-order="@item.CreatedAt.Ticks">

@@ -1,45 +1,97 @@
 ﻿@model InventoryApp.Models.Project
+@using InventoryApp.Models
 
 @{
-    ViewData["Title"] = "Edit";
-    ViewData["ContentWidth"] = "content-narrow";
+    ViewData["Title"] = "Upravit projekt";
 }
 
-<h1>Edit</h1>
+<div class="container" style="max-width: 800px;">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h4 class="mb-0 fw-bold">Upravit projekt</h4>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreatedAt" />
+                <input type="hidden" asp-for="ConsumedAt" />
 
-<h4>Project</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+                @* --- 1. ZÁKLADNÍ INFO --- *@
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Základní informace</h6>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Název projektu</label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Popis</label>
+                    <textarea asp-for="Description" class="form-control" rows="5" placeholder="Můžete použít **tučné**, - odrážky, atd."></textarea>
+                    <div class="form-text">Zde můžete napsat detailní zadání, odkazy na dokumentaci nebo poznámky.</div>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+                <hr class="my-4" />
+
+                @* --- 2. STAV A WORKFLOW --- *@
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Stav a Výroba</h6>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Status" class="form-label">Stav projektu</label>
+                        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ProjectStatus>()"></select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="OrderedAt" class="form-label">Datum objednání (PCB/Díly)</label>
+                        <input asp-for="OrderedAt" class="form-control" type="date" />
+                        <div class="form-text">Kdy jste odeslali data výrobci?</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ReceivedAt" class="form-label">Datum doručení</label>
+                        <input asp-for="ReceivedAt" class="form-control" type="date" />
+                        <div class="form-text">Kdy dorazil balík (např. 15. den)?</div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                @* --- 3. ČASOVÁ NÁROČNOST --- *@
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Časová náročnost (Time Tracking)</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="EstimatedHours" class="form-label">Odhadovaný čas (hodiny)</label>
+                        <div class="input-group">
+                            <input asp-for="EstimatedHours" class="form-control" type="number" step="0.5" />
+                            <span class="input-group-text">hod</span>
+                        </div>
+                        <div class="form-text">Plánovaný čas montáže.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="RealHours" class="form-label">Skutečně odpracováno</label>
+                        <div class="input-group">
+                            <input asp-for="RealHours" class="form-control" type="number" step="0.5" />
+                            <span class="input-group-text">hod</span>
+                        </div>
+                        <div class="form-text">Kolik času to reálně zabralo.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Zrušit</a>
+                    <button type="submit" class="btn btn-primary px-4">Uložit změny</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

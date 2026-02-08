@@ -26,14 +26,26 @@ namespace InventoryApp.ViewModels
         public int TotalItems => Project.Items?.Count ?? 0;
         public int TotalRequired => Project.Items?.Sum(i => i.QuantityRequired) ?? 0;
         public int TotalFromStock => Project.Items?.Sum(i => i.QuantityFromStock) ?? 0;
-        public int TotalToBuy => Project.Items?.Sum(i => i.QuantityToBuy) ?? 0;
+        public int TotalToBuy => Project.Items
+            .Where(i => !i.IsFulfilled) 
+            .Sum(i => i.QuantityToBuy);
 
-        public int Progress => TotalRequired > 0
-            ? (int)((double)TotalFromStock / TotalRequired * 100)
-            : 0;
+        public int Progress
+        {
+            get
+            {
+                if (TotalRequired == 0) return 0;
 
-        public string ProgressColor => Progress == 100
-            ? "bg-success"
-            : (Progress > 50 ? "bg-primary" : "bg-warning");
+                var totalHave = Project.Items.Sum(i =>
+                    i.Type == ProjectItemType.Standard
+                        ? i.QuantityFromStock
+                        : (i.IsFulfilled ? i.QuantityRequired : 0)
+                );
+
+                return (int)((double)totalHave / TotalRequired * 100);
+            }
+        }
+
+        public string ProgressColor => Progress >= 100 ? "bg-success" : (Progress > 50 ? "bg-primary" : "bg-warning");
     }
 }

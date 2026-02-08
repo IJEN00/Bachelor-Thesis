@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using InventoryApp.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting;
 
 namespace InventoryApp.Services
 {
@@ -9,12 +10,14 @@ namespace InventoryApp.Services
         private readonly AppDbContext _context;
         private readonly IProjectPlanningService _planningService;
         private readonly SupplierAggregatorService _aggregator;
+        private readonly IWebHostEnvironment _env;
 
-        public ProjectService(AppDbContext context, IProjectPlanningService planningService, SupplierAggregatorService aggregator)
+        public ProjectService(AppDbContext context, IProjectPlanningService planningService, SupplierAggregatorService aggregator, IWebHostEnvironment env)
         {
             _context = context;
             _planningService = planningService;
             _aggregator = aggregator;
+            _env = env;
         }
 
         public async Task<List<Project>> GetAllAsync()
@@ -34,9 +37,12 @@ namespace InventoryApp.Services
             var project = await _context.Projects
                 .Include(p => p.Items)
                     .ThenInclude(i => i.Component)
+                        .ThenInclude(c => c.Location) 
                 .Include(p => p.Items)
                     .ThenInclude(i => i.SupplierOffers)
                         .ThenInclude(o => o.Supplier)
+                .Include(p => p.Documents) 
+                .AsSplitQuery() 
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project != null && project.ConsumedAt == null)
@@ -85,7 +91,7 @@ namespace InventoryApp.Services
             return _context.Projects.Any(e => e.Id == id);
         }
 
-        public async Task AddItemAsync(int projectId, int? componentId, string? customName, int quantity)
+        public async Task AddItemAsync(int projectId, int? componentId, string? customName, int quantity, ProjectItemType type = ProjectItemType.Standard)
         {
             if (quantity <= 0) throw new ArgumentException("Počet kusů musí být > 0");
 
@@ -95,7 +101,8 @@ namespace InventoryApp.Services
                 ComponentId = componentId,
                 CustomName = componentId.HasValue ? null : customName,
                 QuantityRequired = quantity,
-                QuantityToBuy = quantity 
+                QuantityToBuy = quantity,
+                Type = type
             };
 
             _context.ProjectItems.Add(item);
@@ -129,18 +136,21 @@ namespace InventoryApp.Services
         public async Task SelectOfferAsync(int offerId)
         {
             var offer = await _context.SupplierOffers
+                .Include(o => o.ProjectItem) 
+                .ThenInclude(i => i.SupplierOffers) 
                 .FirstOrDefaultAsync(o => o.Id == offerId);
 
-            if (offer == null) throw new KeyNotFoundException("Nabídka nenalezena.");
+            if (offer != null)
+            {
+                foreach (var otherOffer in offer.ProjectItem.SupplierOffers)
+                {
+                    otherOffer.IsSelected = false;
+                }
 
-            var otherOffers = await _context.SupplierOffers
-                .Where(o => o.ProjectItemId == offer.ProjectItemId)
-                .ToListAsync();
+                offer.IsSelected = true;
 
-            foreach (var o in otherOffers) o.IsSelected = false;
-
-            offer.IsSelected = true;
-            await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task ConsumeStockAsync(int projectId)
@@ -257,6 +267,122 @@ namespace InventoryApp.Services
             Buffer.BlockCopy(data, 0, complete, preamble.Length, data.Length);
 
             return complete;
+        }
+
+        public async Task UploadFileAsync(int projectId, IFormFile file)
+        {
+            if (file == null || file.Length == 0) return;
+
+            var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "projects", projectId.ToString());
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = Path.GetFileName(file.FileName);
+            var uniqueFileName = $"{Guid.NewGuid()}_{fileName}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var doc = new Document
+            {
+                ProjectId = projectId,
+                FileName = fileName,
+                FilePath = $"/uploads/projects/{projectId}/{uniqueFileName}",
+                UploadedAt = DateTime.UtcNow
+            };
+
+            _context.Documents.Add(doc);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteFileAsync(int fileId)
+        {
+            var doc = await _context.Documents.FindAsync(fileId);
+            if (doc == null) return;
+
+            var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+
+            _context.Documents.Remove(doc);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ToggleItemFulfillmentAsync(int itemId)
+        {
+            var item = await _context.ProjectItems.FindAsync(itemId);
+            if (item != null)
+            {
+                item.IsFulfilled = !item.IsFulfilled;
+
+                if (item.IsFulfilled)
+                {
+                    item.QuantityToBuy = 0;
+                }
+                else
+                {
+                    item.QuantityToBuy = Math.Max(0, item.QuantityRequired - item.QuantityFromStock);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<int> DuplicateProjectAsync(int originalId)
+        {
+            var original = await _context.Projects
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == originalId);
+
+            if (original == null) return 0;
+
+            var newProject = new Project
+            {
+                Name = original.Name + " (Kopie)", 
+                Description = original.Description,
+                Status = ProjectStatus.Planning, 
+                CreatedAt = DateTime.UtcNow,
+                EstimatedHours = original.EstimatedHours,
+
+                RealHours = 0,
+                OrderedAt = null,
+                ReceivedAt = null,
+                ConsumedAt = null 
+            };
+
+            _context.Projects.Add(newProject);
+            await _context.SaveChangesAsync();
+
+            foreach (var item in original.Items)
+            {
+                var newItem = new ProjectItem
+                {
+                    ProjectId = newProject.Id,
+                    ComponentId = item.ComponentId,
+                    CustomName = item.CustomName,
+                    Type = item.Type,
+                    QuantityRequired = item.QuantityRequired,
+
+                    QuantityFromStock = 0, 
+                    QuantityToBuy = 0,     
+                    IsFulfilled = false    
+                };
+
+                if (newItem.ComponentId == null)
+                {
+                    newItem.QuantityToBuy = newItem.QuantityRequired;
+                }
+
+                _context.ProjectItems.Add(newItem);
+            }
+
+            await _context.SaveChangesAsync();
+            return newProject.Id; 
         }
     }
 }

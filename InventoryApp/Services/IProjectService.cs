@@ -12,7 +12,7 @@ namespace InventoryApp.Services
         Task DeleteAsync(int id);
         bool ProjectExists(int id);
 
-        Task AddItemAsync(int projectId, int? componentId, string? customName, int quantity);
+        Task AddItemAsync(int projectId, int? componentId, string? customName, int quantity, ProjectItemType type = ProjectItemType.Standard);
         Task DeleteItemAsync(int itemId);
 
         Task FindOffersAsync(int projectId); 
@@ -21,5 +21,9 @@ namespace InventoryApp.Services
 
         Task ConsumeStockAsync(int projectId); 
         Task<byte[]> GenerateOrderCsvAsync(int projectId);
+        Task UploadFileAsync(int projectId, IFormFile file);
+        Task DeleteFileAsync(int fileId);
+        Task ToggleItemFulfillmentAsync(int itemId);
+        Task<int> DuplicateProjectAsync(int originalId);
     }
 }
