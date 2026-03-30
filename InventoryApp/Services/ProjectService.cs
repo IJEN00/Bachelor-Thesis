@@ -163,6 +163,8 @@ namespace InventoryApp.Services
             if (project == null) throw new KeyNotFoundException("Projekt nenalezen.");
             if (project.ConsumedAt != null) throw new InvalidOperationException("Projekt již byl vyskladněn.");
 
+            _planningService.RecalculateInMemory(project);
+
             foreach (var item in project.Items.Where(i => i.ComponentId != null && i.QuantityFromStock > 0))
             {
                 if (item.Component == null) continue;
@@ -194,6 +196,7 @@ namespace InventoryApp.Services
                 }
 
                 project.ConsumedAt = DateTime.UtcNow;
+                project.Status = ProjectStatus.Completed;
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
             }

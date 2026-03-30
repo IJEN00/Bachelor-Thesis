@@ -133,7 +133,7 @@
                     </select>
                 </div>
                 <div class="col-md-3 text-end">
-                    <button id="resetFilters" class="btn btn-outline-secondary w-100 border-0 shadow-sm bg-white">
+                    <button id="resetFilters" class="btn btn-light border text-secondary">
                         <i class="bi bi-x-circle me-1"></i> Vyčistit filtry
                     </button>
                 </div>
@@ -163,7 +163,7 @@
                             int reorderPoint = (item.ReorderPoint ?? 5);
                             int quantity = item.Quantity;
                             string statusColor = quantity == 0 ? "danger" : (quantity < reorderPoint ? "warning" : "success");
-                            string statusText = quantity == 0 ? "Vyprodáno" : (quantity < reorderPoint ? "Dochází" : "Skladem");
+                            string statusText = quantity == 0 ? "Není skladem" : (quantity < reorderPoint ? "Dochází" : "Skladem");
                             string statusIcon = quantity == 0 ? "bi-x-circle" : (quantity < reorderPoint ? "bi-exclamation-circle" : "bi-check-circle");
 
                             <tr data-href="@Url.Action("Details", new { id = item.Id })" style="cursor: pointer;">

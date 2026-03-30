@@ -175,7 +175,7 @@
                 <a asp-action="LowStock" asp-route-filter="low" class="btn @(filter == "low" ? "btn-white text-warning fw-bold" : "btn-light text-muted") border">Dochází</a>
             </div>
 
-            <button id="copyListBtn" class="btn btn-outline-secondary bg-white shadow-sm border">
+            <button id="copyListBtn" class="btn btn-light border text-secondary">
                 <i class="bi bi-clipboard me-1"></i> Zkopírovat seznam nákupu
             </button>
         </div>
@@ -286,12 +286,8 @@
                     await navigator.clipboard.writeText(text);
                     const originalHtml = this.innerHTML;
                     this.innerHTML = '<i class="bi bi-check-lg me-1"></i> Zkopírováno!';
-                    this.classList.remove('btn-outline-secondary');
-                    this.classList.add('btn-success', 'text-white');
                     setTimeout(() => {
                         this.innerHTML = originalHtml;
-                        this.classList.remove('btn-success', 'text-white');
-                        this.classList.add('btn-outline-secondary');
                     }, 2000);
                 } catch {
                     alert("Chyba kopírování.");

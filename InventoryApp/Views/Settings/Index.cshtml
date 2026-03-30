@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Nastavení systému";
+}
+
+<div class="container-fluid mt-3">
+    <h3 class="mb-4">Nastavení a údržba</h3>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom pt-3 pb-2">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-database me-2"></i> Záloha databáze</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary mb-4">
+                        Systém ukládá veškerá data do lokální SQLite databáze. Pro prevenci ztráty dat v důsledku hardwarového selhání (např. poškození SD karty) je doporučeno pravidelně stahovat zálohu.
+                    </p>
+                    <a asp-controller="Settings" asp-action="DownloadBackup" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i> Stáhnout zálohu (.db)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom pt-3 pb-2">
+                    <h5 class="mb-0 text-secondary"><i class="fas fa-plug me-2"></i> Integrace externích API</h5>
+                </div>
+                <div class="card-body text-secondary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><strong>Mouser Electronics API</strong></span>
+                        <span class="badge bg-success rounded-pill px-3 py-2">Připojeno</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><strong>TME API</strong></span>
+                        <span class="badge bg-success rounded-pill px-3 py-2">Připojeno</span>
+                    </div>
+                    <hr />
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Správa autentizačních API klíčů je z bezpečnostních důvodů dostupná pouze přes systémový konfigurační soubor <code>appsettings.json</code>.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -20,7 +20,7 @@ namespace InventoryApp.ViewModels
         public bool IsLowStock => !IsOutOfStock && Quantity < ReorderPoint;
 
         public string StatusColor => IsOutOfStock ? "danger" : (IsLowStock ? "warning" : "success");
-        public string StatusText => IsOutOfStock ? "Vyprodáno" : (IsLowStock ? "Dochází" : "Skladem");
+        public string StatusText => IsOutOfStock ? "Není skladem" : (IsLowStock ? "Dochází" : "Skladem");
         public string StatusIcon => IsOutOfStock ? "bi-x-circle" : (IsLowStock ? "bi-exclamation-circle" : "bi-check-circle");
 
         public int ToBuy => Math.Max(ReorderPoint - Quantity, 0);

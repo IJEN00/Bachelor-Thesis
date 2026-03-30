@@ -31,20 +31,15 @@ namespace InventoryApp.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Workflow
         public ProjectStatus Status { get; set; } = ProjectStatus.Planning;
         public DateTime? ConsumedAt { get; set; } 
         public DateTime? OrderedAt { get; set; }  
         public DateTime? ReceivedAt { get; set; } 
 
-        // Time Tracking
-        [Display(Name = "Odhad pracnosti (hod)")]
         public double EstimatedHours { get; set; }
 
-        [Display(Name = "Skutečná pracnost (hod)")]
         public double RealHours { get; set; }
 
-        // Přílohy 
         public ICollection<Document> Documents { get; set; } = new List<Document>();
         public ICollection<ProjectItem> Items { get; set; } = new List<ProjectItem>();
     }
