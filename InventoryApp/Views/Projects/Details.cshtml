@@ -404,137 +404,153 @@
                 <div class="tab-pane fade" id="buy" role="tabpanel">
                     <div class="p-4">
                         @{
-                            bool anyOffers = Model.Project.Items?.Any(i => i.SupplierOffers != null && i.SupplierOffers.Any()) ?? false;
+                            var itemsToBuy = Model.Project.Items?
+                            .Where(i => !i.IsFulfilled && i.QuantityToBuy > 0 && (i.Type == ProjectItemType.Standard || i.Type == ProjectItemType.Other))
+                            .ToList() ?? new List<ProjectItem>();
+
+                            bool anyOffers = itemsToBuy.Any(i => i.SupplierOffers != null && i.SupplierOffers.Any());
                         }
 
-                        @if (!Model.IsLocked && Model.TotalToBuy > 0)
+                        @if (itemsToBuy.Any())
                         {
-                            <div class="d-flex gap-2 mb-4">
-                                <form asp-action="FindOffers" method="post" id="findOffersForm">
-                                    <input type="hidden" name="projectId" value="@Model.Project.Id" />
-                                    <button type="submit" id="loadPricesBtn" class="btn btn-outline-primary rounded-pill px-4" onclick="showLoadingState()">
-
-                                        @if (anyOffers)
-                                        {
-                                            <i id="loadPricesIcon" class="bi bi-arrow-repeat me-2"></i>
-                                            <span id="loadPricesText">Aktualizovat</span>
-                                        }
-                                        else
-                                        {
-                                            <i id="loadPricesIcon" class="bi bi-search me-2"></i>
-                                            <span id="loadPricesText">Načíst ceny</span>
-                                        }
-
-                                    </button>
-                                </form>
-
-                                <form asp-action="AutoSelectCheapest" method="post">
-                                    <input type="hidden" name="projectId" value="@Model.Project.Id" />
-
-                                    <button type="submit" class="btn btn-outline-secondary rounded-pill px-4" @(!anyOffers ? "disabled" : "")>
-                                        <i class="bi bi-magic me-2"></i> Vybrat nejlevnější
-                                    </button>
-                                </form>
-                            </div>
-                        }
-
-                        @if (anyOffers)
-                        {
-                            <div class="card border rounded-4 shadow-sm mb-4">
-                                <div class="card-body p-0 table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Součástka</th>
-                                                <th class="py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Dodavatel</th>
-                                                <th class="py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Cena / Ks</th>
-                                                <th class="pe-4 py-3 border-bottom-0 text-secondary text-end text-uppercase" style="font-size: 0.85rem;">Akce</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in Model.Project.Items.Where(i => !i.IsFulfilled && i.QuantityToBuy > 0 && (i.Type == ProjectItemType.Standard || i.Type == ProjectItemType.Other)))
+                            @if (!Model.IsLocked)
+                            {
+                                <div class="d-flex gap-2 mb-4">
+                                    <form asp-action="FindOffers" method="post" id="findOffersForm">
+                                        <input type="hidden" name="projectId" value="@Model.Project.Id" />
+                                        <button type="submit" id="loadPricesBtn" class="btn btn-outline-primary rounded-pill px-4" onclick="showLoadingState()">
+                                            @if (anyOffers)
                                             {
-                                                string name = item.Component?.Name ?? item.CustomName ?? "Unknown";
+                                                <i id="loadPricesIcon" class="bi bi-arrow-repeat me-2"></i>
+                                                <span id="loadPricesText">Aktualizovat</span>
+                                            }
+                                            else
+                                            {
+                                                <i id="loadPricesIcon" class="bi bi-search me-2"></i>
+                                                <span id="loadPricesText">Načíst ceny</span>
+                                            }
+                                        </button>
+                                    </form>
 
-                                                var offers = item.SupplierOffers?.OrderBy(o => o.UnitPrice).ToList() ?? new List<SupplierOffer>();
+                                    <form asp-action="AutoSelectCheapest" method="post">
+                                        <input type="hidden" name="projectId" value="@Model.Project.Id" />
+                                        <button type="submit" class="btn btn-outline-secondary rounded-pill px-4" @(!anyOffers ? "disabled" : "")>
+                                            <i class="bi bi-magic me-2"></i> Vybrat nejlevnější
+                                        </button>
+                                    </form>
+                                </div>
+                            }
 
-                                                if (offers.Any())
+                            @if (anyOffers)
+                            {
+                                <div class="card border rounded-4 shadow-sm mb-4">
+                                    <div class="card-body p-0 table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-4 py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Součástka</th>
+                                                    <th class="py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Dodavatel</th>
+                                                    <th class="py-3 border-bottom-0 text-secondary text-uppercase" style="font-size: 0.85rem;">Cena / Ks</th>
+                                                    <th class="pe-4 py-3 border-bottom-0 text-secondary text-end text-uppercase" style="font-size: 0.85rem;">Akce</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in itemsToBuy)
                                                 {
-                                                    for (int i = 0; i < offers.Count; i++)
+                                                    string name = item.Component?.Name ?? item.CustomName ?? "Unknown";
+                                                    var offers = item.SupplierOffers?.OrderBy(o => o.UnitPrice).ToList() ?? new List<SupplierOffer>();
+
+                                                    if (offers.Any())
                                                     {
-                                                        var offer = offers[i];
-                                                        var rowClass = offer.IsSelected ? "bg-success bg-opacity-10" : "";
+                                                        for (int i = 0; i < offers.Count; i++)
+                                                        {
+                                                            var offer = offers[i];
+                                                            var rowClass = offer.IsSelected ? "bg-success bg-opacity-10" : "";
 
-                                                        <tr class="@rowClass">
-                                                            @if (i == 0)
-                                                            {
-                                                                <td class="ps-4 border-bottom" rowspan="@offers.Count">
-                                                                    <strong class="text-dark">@name</strong>
-                                                                    <span class="badge bg-secondary ms-2">@item.QuantityToBuy ks</span>
+                                                            <tr class="@rowClass">
+                                                                @if (i == 0)
+                                                                {
+                                                                    <td class="ps-4 border-bottom" rowspan="@offers.Count">
+                                                                        <strong class="text-dark">@name</strong>
+                                                                        <span class="badge bg-secondary ms-2">@item.QuantityToBuy ks</span>
+                                                                    </td>
+                                                                }
+
+                                                                <td class="border-bottom">
+                                                                    @if (!string.IsNullOrEmpty(offer.ProductUrl))
+                                                                    {
+                                                                        <a href="@offer.ProductUrl" target="_blank" class="fw-bold text-decoration-none" title="Otevřít produkt na webu dodavatele">
+                                                                            @offer.Supplier?.Name
+                                                                            <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                                                                        </a>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <strong class="text-dark">@offer.Supplier?.Name</strong>
+                                                                    }
                                                                 </td>
-                                                            }
 
-                                                            <td class="border-bottom">
-                                                                @if (!string.IsNullOrEmpty(offer.ProductUrl))
-                                                                {
-                                                                    <a href="@offer.ProductUrl" target="_blank" class="fw-bold text-decoration-none" title="Otevřít produkt na webu dodavatele">
-                                                                        @offer.Supplier?.Name
-                                                                        <i class="bi bi-box-arrow-up-right small ms-1"></i>
-                                                                    </a>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <strong class="text-dark">@offer.Supplier?.Name</strong>
-                                                                }
+                                                                <td class="border-bottom">
+                                                                    <span class="badge border border-success text-success bg-white px-3 py-2 fs-6 fw-normal">
+                                                                        @offer.UnitPrice.ToString("N2") @offer.Currency
+                                                                    </span>
+                                                                </td>
+
+                                                                <td class="text-end pe-4 border-bottom">
+                                                                    @if (offer.IsSelected)
+                                                                    {
+                                                                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check2 me-1"></i> Vybráno</span>
+                                                                    }
+                                                                    else if (!Model.IsLocked)
+                                                                    {
+                                                                        <form asp-action="SelectOffer" method="post" class="d-inline">
+                                                                            <input type="hidden" name="offerId" value="@offer.Id" />
+                                                                            <input type="hidden" name="projectId" value="@Model.Project.Id" />
+                                                                            <button class="btn btn-sm btn-outline-primary rounded-pill px-4">Vybrat</button>
+                                                                        </form>
+                                                                    }
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <tr>
+                                                            <td class="ps-4 border-bottom">
+                                                                <strong class="text-dark">@name</strong>
+                                                                <span class="badge bg-secondary ms-2">@item.QuantityToBuy ks</span>
                                                             </td>
-
-                                                            <td class="border-bottom">
-                                                                <span class="badge border border-success text-success bg-white px-3 py-2 fs-6 fw-normal">
-                                                                    @offer.UnitPrice.ToString("N2") @offer.Currency
-                                                                </span>
-                                                            </td>
-
-                                                            <td class="text-end pe-4 border-bottom">
-                                                                @if (offer.IsSelected)
-                                                                {
-                                                                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check2 me-1"></i> Vybráno</span>
-                                                                }
-                                                                else if (!Model.IsLocked)
-                                                                {
-                                                                    <form asp-action="SelectOffer" method="post" class="d-inline">
-                                                                        <input type="hidden" name="offerId" value="@offer.Id" />
-                                                                        <input type="hidden" name="projectId" value="@Model.Project.Id" />
-                                                                        <button class="btn btn-sm btn-outline-primary rounded-pill px-4">Vybrat</button>
-                                                                    </form>
-                                                                }
+                                                            <td colspan="3" class="border-bottom py-3 text-muted fst-italic">
+                                                                Žádné nabídky nalezeny.
                                                             </td>
                                                         </tr>
                                                     }
                                                 }
-                                                else
-                                                {
-                                                    <tr>
-                                                        <td class="ps-4 border-bottom">
-                                                            <strong class="text-dark">@name</strong>
-                                                            <span class="badge bg-secondary ms-2">@item.QuantityToBuy ks</span>
-                                                        </td>
-                                                        <td colspan="3" class="border-bottom py-3 text-muted fst-italic">
-                                                            Žádné nabídky nalezeny.
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            }
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                            <small class="text-muted d-block text-end fst-italic mb-3">Ceny jsou orientační a mohou se změnit.</small>
+                                <small class="text-muted d-block text-end fst-italic mb-3">Ceny jsou orientační a mohou se změnit.</small>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bi bi-search fs-1 text-muted d-block mb-3 opacity-50"></i>
+                                    <h5 class="text-dark fw-bold">Zatím nebyly načteny ceny</h5>
+                                    <p class="text-muted mt-2">Klikněte na tlačítko "Načíst ceny" pro vyhledání u dodavatelů.</p>
+                                </div>
+                            }
                         }
                         else
                         {
                             <div class="text-center py-5">
-                                <i class="bi bi-search fs-1 text-muted"></i>
-                                <p class="text-muted mt-2">Zatím nebyly hledány žádné ceny.</p>
+                                <i class="bi bi-cart-check fs-1 d-block mb-3 opacity-50 text-success"></i>
+                                <h5 class="text-dark fw-bold">Není co nakupovat</h5>
+                                <p class="text-muted mb-4">Kusovník je prázdný, nebo máte všechny potřebné součástky aktuálně skladem.</p>
+
+                                <button class="btn btn-outline-primary rounded-pill px-4 shadow-sm" onclick="var tab = new bootstrap.Tab(document.querySelector('#bom-tab')); tab.show();">
+                                    <i class="bi bi-card-list me-2"></i> Přejít do Kusovníku
+                                </button>
                             </div>
                         }
                     </div>
